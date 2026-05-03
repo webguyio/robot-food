@@ -1,0 +1,428 @@
+<?php
+
+if ( !defined( 'ABSPATH' ) ) {
+	status_header( 404 );
+	exit;
+}
+
+class Robot_Food_Settings {
+
+	public static function init() {
+		add_action( 'admin_menu', array( __CLASS__, 'add_page' ) );
+		add_action( 'admin_init', array( __CLASS__, 'register' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+	}
+
+	public static function add_page() {
+		add_options_page(
+			__( 'Robot Food', 'robot-food' ),
+			__( 'SEO', 'robot-food' ),
+			'manage_options',
+			'robot-food',
+			array( __CLASS__, 'render' )
+		);
+	}
+
+	public static function enqueue( $hook ) {
+		if ( 'settings_page_robot-food' !== $hook && 'post.php' !== $hook && 'post-new.php' !== $hook ) {
+			return;
+		}
+		wp_enqueue_media();
+		wp_enqueue_style( 'robot-food', ROBOT_FOOD_URL . 'assets/admin.css', array(), ROBOT_FOOD_VER );
+		wp_enqueue_script( 'robot-food', ROBOT_FOOD_URL . 'assets/admin.js', array(), ROBOT_FOOD_VER, true );
+		wp_localize_script( 'robot-food', 'rfL10n', array(
+			'selectImage' => __( 'Select Image', 'robot-food' ),
+			'useImage'    => __( 'Use This Image', 'robot-food' ),
+		) );
+	}
+
+	public static function register() {
+		register_setting( 'robot_food', 'robot_food', array( __CLASS__, 'sanitize' ) );
+	}
+
+	public static function sanitize( $input ) {
+		$output = array();
+		$text_fields = array(
+			'title_format',
+			'title_separator',
+			'default_description',
+			'schema_type',
+			'schema_org_name',
+			'schema_socials',
+			'sitemap_exclude_posts',
+			'sitemap_exclude_terms',
+			'llms_header',
+			'llms_extra',
+			'llms_exclude_posts',
+		);
+		foreach ( $text_fields as $field ) {
+			$output[ $field ] = isset( $input[ $field ] ) ? sanitize_textarea_field( wp_unslash( $input[ $field ] ) ) : '';
+		}
+		$image_fields = array( 'default_og_image', 'schema_logo' );
+		foreach ( $image_fields as $field ) {
+			$output[ $field ] = isset( $input[ $field ] ) ? absint( $input[ $field ] ) : 0;
+		}
+		$bool_fields = array( 'sitemap_disable', 'llms_disable' );
+		foreach ( $bool_fields as $field ) {
+			$output[ $field ] = isset( $input[ $field ] ) && '1' === $input[ $field ] ? '1' : '0';
+		}
+		$array_fields = array( 'sitemap_exclude_post_types', 'sitemap_exclude_taxonomies' );
+		foreach ( $array_fields as $field ) {
+			if ( isset( $input[ $field ] ) && is_array( $input[ $field ] ) ) {
+				$output[ $field ] = array_map( 'sanitize_key', $input[ $field ] );
+			} else {
+				$output[ $field ] = array();
+			}
+		}
+		$code_fields = array( 'code_head', 'code_body_open', 'code_body_close', 'robots_txt' );
+		foreach ( $code_fields as $field ) {
+			$output[ $field ] = isset( $input[ $field ] ) ? wp_unslash( $input[ $field ] ) : '';
+		}
+		if ( !empty( $output['robots_txt'] ) ) {
+			self::write_robots_txt( $output['robots_txt'] );
+		}
+		if ( isset( $input['htaccess'] ) ) {
+			self::write_htaccess( wp_unslash( $input['htaccess'] ) );
+		}
+		return $output;
+	}
+
+	public static function write_robots_txt( $content ) {
+		$path = ABSPATH . 'robots.txt';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Direct file write required for robots.txt; WP_Filesystem requires form context not available in settings save.
+		file_put_contents( $path, $content );
+	}
+
+	public static function write_htaccess( $content ) {
+		$path = ABSPATH . '.htaccess';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Direct file write required for .htaccess; WP_Filesystem requires form context not available in settings save.
+		file_put_contents( $path, $content );
+	}
+
+	public static function read_robots_txt() {
+		$saved = Robot_Food::get_option( 'robots_txt', '' );
+		if ( $saved !== '' ) {
+			return $saved;
+		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- robots_txt is a core WordPress filter, not a custom hook defined by this plugin.
+		return apply_filters( 'robots_txt', "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php", get_option( 'blog_public' ) );
+	}
+
+	public static function read_htaccess() {
+		$path = ABSPATH . '.htaccess';
+		if ( file_exists( $path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local file; no remote URL involved.
+			return file_get_contents( $path );
+		}
+		return '';
+	}
+
+	public static function render() {
+		if ( !current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$options      = get_option( 'robot_food', array() );
+		$post_types   = get_post_types( array( 'public' => true ), 'objects' );
+		$excluded_pts = isset( $options['sitemap_exclude_post_types'] ) ? (array) $options['sitemap_exclude_post_types'] : array();
+		$robots_txt   = self::read_robots_txt();
+		$htaccess     = self::read_htaccess();
+		?>
+		<div class="wrap" id="robot-food">
+			<h1>
+				<svg viewBox="0 0 1200 1200" width="48" height="48" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><radialGradient id="a" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#2d1060"/><stop offset="1" stop-color="#0d0520"/></radialGradient><filter id="b"><feTurbulence baseFrequency=".75" numOctaves="4" result="noise" stitchTiles="stitch" type="fractalNoise"/><feColorMatrix in="noise" result="gray" type="saturate" values="0"/><feBlend in="SourceGraphic" in2="gray" mode="overlay" result="blended"/><feComposite in="blended" in2="SourceGraphic" operator="in"/></filter><clipPath id="c"><circle cx="600" cy="600" r="600"/></clipPath><circle cx="600" cy="600" fill="url(#a)" r="600"/><path clip-path="url(#c)" d="m0 0h1200v1200h-1200z" fill="url(#a)" filter="url(#b)" opacity=".18"/><g fill="none" stroke="#f5e800" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><g opacity=".5" transform="matrix(7 0 0 7 516 126)"><path d="m12 14-1 1"/><path d="m13.75 18.25-1.25 1.42"/><path d="m17.775 5.654a15.68 15.68 0 0 0 -12.121 12.12"/><path d="m18.8 9.3a1 1 0 0 0 2.1 7.7"/><path d="m21.964 20.732a1 1 0 0 1 -1.232 1.232l-18-5a1 1 0 0 1 -.695-1.232 19.68 19.68 0 0 1 13.695-13.695 1 1 0 0 1 1.232.695z"/></g><g opacity=".5" transform="matrix(7 0 0 7 853 321)"><path d="m12 16h-8a2 2 0 1 1 0-4h16a2 2 0 1 1 0 4h-4.25"/><path d="m5 12a2 2 0 0 1 -2-2 9 7 0 0 1 18 0 2 2 0 0 1 -2 2"/><path d="m5 16a2 2 0 0 0 -2 2 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 2 2 0 0 0 -2-2q0 0 0 0"/><path d="m6.67 12 6.13 4.6a2 2 0 0 0 2.8-.4l3.15-4.2"/></g><g opacity=".5" transform="matrix(7 0 0 7 853 711)"><path d="m16 13h-13"/><path d="m16 17h-13"/><path d="m7.2 7.9-3.388 2.5a2 2 0 0 0 -.812 1.61v7.99a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8.654c0-2-2.44-6.026-6.44-8.026a1 1 0 0 0 -1.082.057l-3.078 2.223"/><circle cx="9" cy="7" r="2"/></g><g opacity=".5" transform="matrix(7 0 0 7 516 906)"><path d="m6 8 1.75 12.28a2 2 0 0 0 2 1.72h4.54a2 2 0 0 0 2-1.72l1.71-12.28"/><path d="m5 8h14"/><path d="m7 15a6.47 6.47 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/><path d="m12 8 1-6h2"/></g><g opacity=".5" transform="matrix(7 0 0 7 179 711)"><path d="m18 8a2 2 0 0 0 0-4 2 2 0 0 0 -4 0 2 2 0 0 0 -4 0 2 2 0 0 0 -4 0 2 2 0 0 0 0 4"/><path d="m10 22-1-14"/><path d="m14 22 1-14"/><path d="m20 8c.5 0 .9.4.8 1l-2.6 12c-.1.5-.7 1-1.2 1h-10c-.6 0-1.1-.4-1.2-1l-2.6-12c-.1-.6.3-1 .8-1z"/></g><g opacity=".5" transform="matrix(7 0 0 7 179 321)"><path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0l4.08-10.35"/><path d="m17 7a5 5 0 0 0 -10 0"/><path d="m17 7a2 2 0 0 1 0 4h-10a2 2 0 0 1 0-4"/></g><g transform="matrix(25 0 0 25 300 265)"><path d="m12 8v-4h-4"/><rect height="12" rx="2" width="16" x="4" y="8"/><path d="m2 14h2"/><path d="m20 14h2"/><path d="m15 13v2"/><path d="m9 13v2"/></g></g></svg>
+				<?php esc_html_e( 'Robot Food', 'robot-food' ); ?>
+			</h1>
+			<div id="rf-search-wrap">
+				<label for="rf-search" class="screen-reader-text"><?php esc_html_e( 'Search settings', 'robot-food' ); ?></label>
+				<input
+					type="search"
+					id="rf-search"
+					placeholder="<?php esc_attr_e( 'Search settings...', 'robot-food' ); ?>"
+					autocomplete="off"
+				>
+			</div>
+			<form method="post" action="options.php">
+				<?php settings_fields( 'robot_food' ); ?>
+
+				<section class="rf-section" data-keywords="title separator format site name">
+					<h2><?php esc_html_e( 'Title', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="title format order site name">
+							<th scope="row"><label for="rf_title_format"><?php esc_html_e( 'Format', 'robot-food' ); ?></label></th>
+							<td>
+								<select id="rf_title_format" name="robot_food[title_format]">
+									<option value="title-site" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'title-site' ); ?>><?php esc_html_e( 'Page Title | Site Name', 'robot-food' ); ?></option>
+									<option value="site-title" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'site-title' ); ?>><?php esc_html_e( 'Site Name | Page Title', 'robot-food' ); ?></option>
+								</select>
+							</td>
+						</tr>
+						<tr data-keywords="title separator divider pipe dash">
+							<th scope="row"><label for="rf_title_separator"><?php esc_html_e( 'Separator', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_title_separator" name="robot_food[title_separator]" value="<?php echo esc_attr( Robot_Food::get_option( 'title_separator', '|' ) ); ?>" class="small-text">
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="description meta default">
+					<h2><?php esc_html_e( 'Description', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="default description meta fallback">
+							<th scope="row"><label for="rf_default_description"><?php esc_html_e( 'Default Description', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_default_description" name="robot_food[default_description]" rows="3" class="large-text"><?php echo esc_textarea( Robot_Food::get_option( 'default_description' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Used when a page has no description or excerpt.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="social og open graph twitter image facebook x">
+					<h2><?php esc_html_e( 'Social', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="default social image og open graph facebook twitter x fallback">
+							<th scope="row"><label><?php esc_html_e( 'Default Social Image', 'robot-food' ); ?></label></th>
+							<td>
+								<?php
+								$og_id  = Robot_Food::get_option( 'default_og_image' );
+								$og_url = $og_id ? wp_get_attachment_image_url( (int) $og_id, 'thumbnail' ) : '';
+								?>
+								<div class="rf-image-picker">
+									<input type="hidden" id="rf_default_og_image" name="robot_food[default_og_image]" value="<?php echo esc_attr( $og_id ); ?>">
+									<div class="rf-image-preview" id="rf_default_og_image_preview">
+										<?php if ( $og_url ) : ?>
+											<img src="<?php echo esc_url( $og_url ); ?>" alt="">
+										<?php endif; ?>
+									</div>
+									<button type="button" class="button" data-target="rf_default_og_image"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
+									<button type="button" class="button rf-image-remove<?php echo $og_id ? '' : ' hidden'; ?>" data-target="rf_default_og_image"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
+								</div>
+								<p class="description"><?php esc_html_e( 'Fallback image for Open Graph and X Cards.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="schema org organization person type logo social profiles sameAs">
+					<h2><?php esc_html_e( 'Schema', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="schema type organization person">
+							<th scope="row"><label for="rf_schema_type"><?php esc_html_e( 'Site Type', 'robot-food' ); ?></label></th>
+							<td>
+								<select id="rf_schema_type" name="robot_food[schema_type]">
+									<option value="Organization" <?php selected( Robot_Food::get_option( 'schema_type', 'Organization' ), 'Organization' ); ?>><?php esc_html_e( 'Organization', 'robot-food' ); ?></option>
+									<option value="Person" <?php selected( Robot_Food::get_option( 'schema_type', 'Organization' ), 'Person' ); ?>><?php esc_html_e( 'Person', 'robot-food' ); ?></option>
+								</select>
+							</td>
+						</tr>
+						<tr data-keywords="schema organization name">
+							<th scope="row"><label for="rf_schema_org_name"><?php esc_html_e( 'Organization / Person Name', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_schema_org_name" name="robot_food[schema_org_name]" value="<?php echo esc_attr( Robot_Food::get_option( 'schema_org_name' ) ); ?>" class="regular-text" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+							</td>
+						</tr>
+						<tr data-keywords="schema logo image">
+							<th scope="row"><label><?php esc_html_e( 'Logo', 'robot-food' ); ?></label></th>
+							<td>
+								<?php
+								$logo_id  = Robot_Food::get_option( 'schema_logo' );
+								$logo_url = $logo_id ? wp_get_attachment_image_url( (int) $logo_id, 'thumbnail' ) : '';
+								?>
+								<div class="rf-image-picker">
+									<input type="hidden" id="rf_schema_logo" name="robot_food[schema_logo]" value="<?php echo esc_attr( $logo_id ); ?>">
+									<div class="rf-image-preview" id="rf_schema_logo_preview">
+										<?php if ( $logo_url ) : ?>
+											<img src="<?php echo esc_url( $logo_url ); ?>" alt="">
+										<?php endif; ?>
+									</div>
+									<button type="button" class="button" data-target="rf_schema_logo"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
+									<button type="button" class="button rf-image-remove<?php echo $logo_id ? '' : ' hidden'; ?>" data-target="rf_schema_logo"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
+								</div>
+							</td>
+						</tr>
+						<tr data-keywords="schema social profiles sameAs facebook twitter linkedin instagram">
+							<th scope="row"><label for="rf_schema_socials"><?php esc_html_e( 'Social Profiles', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_schema_socials" name="robot_food[schema_socials]" rows="5" class="large-text" placeholder="https://x.com/example&#10;https://facebook.com/example"><?php echo esc_textarea( Robot_Food::get_option( 'schema_socials' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'One URL per line. Used for sameAs in schema output.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="sitemap xml post types taxonomies exclude disable">
+					<h2><?php esc_html_e( 'Sitemap', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="disable sitemap xml">
+							<th scope="row"><?php esc_html_e( 'sitemap.xml', 'robot-food' ); ?></th>
+							<td>
+								<label for="rf_sitemap_disable">
+									<input type="checkbox" id="rf_sitemap_disable" name="robot_food[sitemap_disable]" value="1" <?php checked( Robot_Food::get_option( 'sitemap_disable', '0' ), '1' ); ?>>
+									<?php esc_html_e( 'Disable sitemap.xml', 'robot-food' ); ?>
+								</label>
+								<p class="description">
+									<?php
+									printf(
+										wp_kses(
+											/* translators: %s: sitemap URL */
+											__( 'Your sitemap.xml is at %s', 'robot-food' ),
+											array( 'a' => array( 'href' => array(), 'target' => array() ) )
+										),
+										'<a href="' . esc_url( home_url( '/sitemap.xml' ) ) . '" target="_blank">' . esc_html( home_url( '/sitemap.xml' ) ) . '</a>'
+									);
+									?>
+								</p>
+							</td>
+						</tr>
+						<tr data-keywords="exclude post types sitemap">
+							<th scope="row"><?php esc_html_e( 'Exclude Post Types', 'robot-food' ); ?></th>
+							<td>
+								<?php foreach ( $post_types as $pt ) : ?>
+									<label style="display:block;margin-bottom:4px;">
+										<input
+											type="checkbox"
+											name="robot_food[sitemap_exclude_post_types][]"
+											value="<?php echo esc_attr( $pt->name ); ?>"
+											<?php checked( in_array( $pt->name, $excluded_pts, true ) ); ?>
+										>
+										<?php echo esc_html( $pt->labels->name ); ?>
+									</label>
+								<?php endforeach; ?>
+							</td>
+						</tr>
+						<tr data-keywords="exclude posts ids sitemap individual">
+							<th scope="row"><label for="rf_sitemap_exclude_posts"><?php esc_html_e( 'Exclude Posts by ID', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_sitemap_exclude_posts" name="robot_food[sitemap_exclude_posts]" value="<?php echo esc_attr( Robot_Food::get_option( 'sitemap_exclude_posts' ) ); ?>" class="regular-text" placeholder="1,2,3">
+								<p class="description"><?php esc_html_e( 'Comma-separated post IDs to exclude from the sitemap.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="exclude terms categories tags ids sitemap individual">
+							<th scope="row"><label for="rf_sitemap_exclude_terms"><?php esc_html_e( 'Exclude Terms by ID', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_sitemap_exclude_terms" name="robot_food[sitemap_exclude_terms]" value="<?php echo esc_attr( Robot_Food::get_option( 'sitemap_exclude_terms' ) ); ?>" class="regular-text" placeholder="1,2,3">
+								<p class="description"><?php esc_html_e( 'Comma-separated term IDs (categories, tags, etc.) to exclude from the sitemap.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="llms txt ai bots crawlers language models">
+					<h2><?php esc_html_e( 'LLMs', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="disable llms txt">
+							<th scope="row"><?php esc_html_e( 'llms.txt', 'robot-food' ); ?></th>
+							<td>
+								<label for="rf_llms_disable">
+									<input type="checkbox" id="rf_llms_disable" name="robot_food[llms_disable]" value="1" <?php checked( Robot_Food::get_option( 'llms_disable', '0' ), '1' ); ?>>
+									<?php esc_html_e( 'Disable llms.txt', 'robot-food' ); ?>
+								</label>
+								<p class="description">
+									<?php
+									printf(
+										wp_kses(
+											/* translators: %s: llms.txt URL */
+											__( 'Your llms.txt is at %s', 'robot-food' ),
+											array( 'a' => array( 'href' => array(), 'target' => array() ) )
+										),
+										'<a href="' . esc_url( home_url( '/llms.txt' ) ) . '" target="_blank">' . esc_html( home_url( '/llms.txt' ) ) . '</a>'
+									);
+									?>
+								</p>
+							</td>
+						</tr>
+						<tr data-keywords="llms header custom greeting ai">
+							<th scope="row"><label for="rf_llms_header"><?php esc_html_e( 'Custom Header', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_llms_header" name="robot_food[llms_header]" rows="5" class="large-text"><?php echo esc_textarea( Robot_Food::get_option( 'llms_header' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Replaces the auto-generated header. Use Markdown. Leave blank to use the default.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="llms extra additional content append">
+							<th scope="row"><label for="rf_llms_extra"><?php esc_html_e( 'Additional Content', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_llms_extra" name="robot_food[llms_extra]" rows="5" class="large-text"><?php echo esc_textarea( Robot_Food::get_option( 'llms_extra' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Appended after the auto-generated pages and posts list. Use Markdown.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="llms exclude posts ids individual">
+							<th scope="row"><label for="rf_llms_exclude_posts"><?php esc_html_e( 'Exclude Posts by ID', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_llms_exclude_posts" name="robot_food[llms_exclude_posts]" value="<?php echo esc_attr( Robot_Food::get_option( 'llms_exclude_posts' ) ); ?>" class="regular-text" placeholder="1,2,3">
+								<p class="description"><?php esc_html_e( 'Comma-separated post IDs to exclude from llms.txt.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="robots txt crawl disallow allow user agent">
+					<h2><?php esc_html_e( 'Robots', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="robots txt editor crawl disallow allow">
+							<th scope="row"><label for="rf_robots_txt"><?php esc_html_e( 'robots.txt', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_robots_txt" name="robot_food[robots_txt]" rows="10" class="large-text code" placeholder="User-agent: *&#10;Disallow:"><?php echo esc_textarea( $robots_txt ); ?></textarea>
+								<p class="description">
+									<?php
+									printf(
+										wp_kses(
+											/* translators: %s: robots.txt URL */
+											__( 'Directly edits the robots.txt file in your WordPress root. Your robots.txt is at %s', 'robot-food' ),
+											array( 'a' => array( 'href' => array(), 'target' => array() ) )
+										),
+										'<a href="' . esc_url( home_url( '/robots.txt' ) ) . '" target="_blank">' . esc_html( home_url( '/robots.txt' ) ) . '</a>'
+									);
+									?>
+								</p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="htaccess apache redirects rewrite rules server">
+					<h2><?php esc_html_e( 'HT Access', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="htaccess apache editor redirects rewrite rules mod_rewrite">
+							<th scope="row"><label for="rf_htaccess"><?php esc_html_e( '.htaccess', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_htaccess" name="robot_food[htaccess]" rows="12" class="large-text code"><?php echo esc_textarea( $htaccess ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Directly edits the .htaccess file in your WordPress root. Only available on Apache servers.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<section class="rf-section" data-keywords="custom code head body scripts analytics tracking verification">
+					<h2><?php esc_html_e( 'Custom Code', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr data-keywords="head code scripts meta tags verification analytics">
+							<th scope="row"><label for="rf_code_head"><?php esc_html_e( 'Head', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_code_head" name="robot_food[code_head]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_head' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Added inside &lt;head&gt;. Use for verification tags, analytics scripts, etc.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="body open after body scripts tracking tag manager">
+							<th scope="row"><label for="rf_code_body_open"><?php esc_html_e( 'After &lt;body&gt;', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_code_body_open" name="robot_food[code_body_open]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_body_open' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Added immediately after the opening &lt;body&gt; tag. Use for Google Tag Manager noscript, etc.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="body close before body footer scripts">
+							<th scope="row"><label for="rf_code_body_close"><?php esc_html_e( 'Before &lt;/body&gt;', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_code_body_close" name="robot_food[code_body_close]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_body_close' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Added before the closing &lt;/body&gt; tag.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</section>
+
+				<?php submit_button(); ?>
+			</form>
+		</div>
+		<?php
+	}
+}
