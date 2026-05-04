@@ -29,15 +29,15 @@ Robot Food isn't fancy, it's just useful, which is also the right mindset for SE
 
 * Title format and separator control
 * Default meta description
-* Default social image for Open Graph and Twitter Cards
+* Default social image for Open Graph and X Cards
 * Schema markup (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList)
 * Social profiles (sameAs)
 * llms.txt with smart defaults and customizable header
 * robots.txt editor
 * .htaccess editor
-* Code injection: head, after body open, before body close
+* Custom code: head, after body open, before body close
 * Pagination canonicals (prev/next)
-* Native WordPress sitemap customization: exclude post types, taxonomies, and individual posts
+* Sitemap with customization: exclude post types, taxonomies, and individual posts
 * Per-post overrides for title, description, canonical, social title, social description, social image, schema type, and noindex
 * Works with all public post types including WooCommerce, bbPress, and custom post types
 * Single settings page with live search
@@ -58,10 +58,6 @@ No. As long as this plugin is under my roof, it will always be 100% free with al
 = Does this work with WooCommerce? =
 
 Yes. The meta box appears on all public post types including WooCommerce products.
-
-= Does this replace my robots.txt or sitemap.xml? =
-
-It edits your existing robots.txt directly and customizes the native WordPress sitemap.xml rather than replacing them.
 
 == Changelog ==
 
