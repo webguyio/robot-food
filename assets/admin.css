@@ -8,6 +8,11 @@
 	margin-bottom: -5px;
 }
 
+#robot-food label {
+	display: block;
+	margin-bottom: 4px;
+}
+
 #rf-search-wrap {
 	margin-bottom: 20px;
 }
@@ -123,6 +128,20 @@
 
 .rf-noindex input[type="checkbox"] {
 	margin: 0;
+}
+
+.rf-section.recommendations {
+	margin-top: 100px;
+}
+
+.rf-recommendations {
+	margin: 8px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rf-recommendations li {
+	padding: 4px 0;
 }
 
 @media ( max-width: 782px ) {

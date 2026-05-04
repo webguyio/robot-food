@@ -14,6 +14,8 @@ Feed the robots tasty snacks to improve your site's SEO and AIO.
 
 == Description ==
 
+[💬 Ask Question](https://github.com/webguyio/robot-food/issues) | [📧 Email Me](mailto:webguywork@gmail.com)
+
 Feed the robots tasty snacks to improve your site's SEO and AIO.
 
 *What is the point of this plugin when there are already so many advanced SEO plugins that do it all?*
@@ -38,7 +40,7 @@ Robot Food isn't fancy, it's just useful, which is also the right mindset for SE
 * Custom code: head, after body open, before body close
 * Pagination canonicals (prev/next)
 * Sitemap with customization: exclude post types, taxonomies, and individual posts
-* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, and noindex
+* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
 * Works with all public post types including WooCommerce, bbPress, and custom post types
 * Single settings page with live search
 * No setup wizard, no admin bar, no bloat

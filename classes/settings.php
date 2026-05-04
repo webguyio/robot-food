@@ -11,6 +11,8 @@ class Robot_Food_Settings {
 		add_action( 'admin_menu', array( __CLASS__, 'add_page' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'notice_search_discouraged' ) );
+		add_action( 'wp_ajax_robot_food_dismiss_notice', array( __CLASS__, 'dismiss_notice' ) );
 	}
 
 	public static function add_page() {
@@ -43,12 +45,15 @@ class Robot_Food_Settings {
 	public static function sanitize( $input ) {
 		$output = array();
 		$text_fields = array(
+			'homepage_title',
 			'title_format',
 			'title_separator',
+			'homepage_description',
 			'default_description',
 			'schema_type',
 			'schema_org_name',
 			'schema_socials',
+			'noindex_custom_slugs',
 			'sitemap_exclude_posts',
 			'sitemap_exclude_terms',
 			'llms_header',
@@ -62,11 +67,27 @@ class Robot_Food_Settings {
 		foreach ( $image_fields as $field ) {
 			$output[ $field ] = isset( $input[ $field ] ) ? absint( $input[ $field ] ) : 0;
 		}
-		$bool_fields = array( 'sitemap_disable', 'llms_disable' );
+		$bool_fields = array(
+			'sitemap_disable',
+			'llms_disable',
+			'noindex_404',
+			'noindex_search',
+			'noindex_login',
+			'noindex_logout',
+			'noindex_register',
+			'noindex_category',
+			'noindex_tag',
+			'noindex_date',
+			'noindex_archive',
+			'noindex_author',
+			'noindex_attachment',
+			'noindex_feed',
+			'noindex_pagination',
+		);
 		foreach ( $bool_fields as $field ) {
 			$output[ $field ] = isset( $input[ $field ] ) && '1' === $input[ $field ] ? '1' : '0';
 		}
-		$array_fields = array( 'sitemap_exclude_post_types', 'sitemap_exclude_taxonomies' );
+		$array_fields = array( 'sitemap_exclude_post_types' );
 		foreach ( $array_fields as $field ) {
 			if ( isset( $input[ $field ] ) && is_array( $input[ $field ] ) ) {
 				$output[ $field ] = array_map( 'sanitize_key', $input[ $field ] );
@@ -117,9 +138,76 @@ class Robot_Food_Settings {
 		return '';
 	}
 
+	public static function notice_search_discouraged() {
+		if ( get_option( 'blog_public' ) ) {
+			return;
+		}
+		if ( !current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( get_user_meta( get_current_user_id(), 'robot_food_dismiss_discouraged', true ) ) {
+			return;
+		}
+		$url = admin_url( 'options-reading.php' );
+		echo '<div class="notice notice-error is-dismissible" id="rf-notice-discouraged">';
+		echo '<p>';
+		printf(
+			wp_kses(
+				/* translators: %s: URL to Reading Settings page */
+				__( '<strong>Robot Food:</strong> Search engines are discouraged from indexing this site. <a href="%s">Fix this in Reading Settings</a>.', 'robot-food' ),
+				array(
+					'strong' => array(),
+					'a'      => array( 'href' => array() ),
+				)
+			),
+			esc_url( $url )
+		);
+		echo '</p>';
+		echo '</div>';
+		echo '<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			var notice = document.getElementById("rf-notice-discouraged");
+			if (!notice) return;
+			notice.addEventListener("click", function(e) {
+				if (e.target.classList.contains("notice-dismiss")) {
+					fetch("' . esc_url( admin_url( 'admin-ajax.php' ) ) . '", {
+						method: "POST",
+						headers: { "Content-Type": "application/x-www-form-urlencoded" },
+						body: "action=robot_food_dismiss_notice&nonce=' . esc_js( wp_create_nonce( 'robot_food_dismiss_notice' ) ) . '"
+					});
+				}
+			});
+		});
+		</script>';
+	}
+
+	public static function dismiss_notice() {
+		check_ajax_referer( 'robot_food_dismiss_notice', 'nonce' );
+		update_user_meta( get_current_user_id(), 'robot_food_dismiss_discouraged', '1' );
+		wp_die();
+	}
+
 	public static function render() {
 		if ( !current_user_can( 'manage_options' ) ) {
 			return;
+		}
+		if ( !get_option( 'blog_public' ) ) {
+			$url = admin_url( 'options-reading.php' );
+			echo '<div class="notice notice-error">';
+			echo '<p>';
+			printf(
+				wp_kses(
+					/* translators: %s: URL to Reading Settings page */
+					__( '<strong>Search engines are currently discouraged from indexing this site.</strong> <a href="%s">Fix this in Reading Settings</a>.', 'robot-food' ),
+					array(
+						'strong' => array(),
+						'a'      => array( 'href' => array() ),
+					)
+				),
+				esc_url( $url )
+			);
+			echo '</p>';
+			echo '</div>';
 		}
 		$options      = get_option( 'robot_food', array() );
 		$post_types   = get_post_types( array( 'public' => true ), 'objects' );
@@ -144,9 +232,18 @@ class Robot_Food_Settings {
 			<form method="post" action="options.php">
 				<?php settings_fields( 'robot_food' ); ?>
 
+				<?php submit_button(); ?>
+
 				<section class="rf-section" data-keywords="title separator format site name">
 					<h2><?php esc_html_e( 'Title', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
+						<tr data-keywords="homepage title front page home">
+							<th scope="row"><label for="rf_homepage_title"><?php esc_html_e( 'Homepage Title', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_homepage_title" name="robot_food[homepage_title]" value="<?php echo esc_attr( Robot_Food::get_option( 'homepage_title' ) ); ?>" class="regular-text" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+								<p class="description"><?php esc_html_e( 'Overrides the default site name used as the homepage title.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
 						<tr data-keywords="title format order site name">
 							<th scope="row"><label for="rf_title_format"><?php esc_html_e( 'Format', 'robot-food' ); ?></label></th>
 							<td>
@@ -168,6 +265,13 @@ class Robot_Food_Settings {
 				<section class="rf-section" data-keywords="description meta default">
 					<h2><?php esc_html_e( 'Description', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
+						<tr data-keywords="homepage description front page home">
+							<th scope="row"><label for="rf_homepage_description"><?php esc_html_e( 'Homepage Description', 'robot-food' ); ?></label></th>
+							<td>
+								<textarea id="rf_homepage_description" name="robot_food[homepage_description]" rows="3" class="large-text"><?php echo esc_textarea( Robot_Food::get_option( 'homepage_description' ) ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Used as the meta description for the homepage.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
 						<tr data-keywords="default description meta fallback">
 							<th scope="row"><label for="rf_default_description"><?php esc_html_e( 'Default Description', 'robot-food' ); ?></label></th>
 							<td>
@@ -182,7 +286,7 @@ class Robot_Food_Settings {
 					<h2><?php esc_html_e( 'Social', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
 						<tr data-keywords="default social image og open graph facebook twitter x fallback">
-							<th scope="row"><label><?php esc_html_e( 'Default Social Image', 'robot-food' ); ?></label></th>
+							<th scope="row"><label for="rf_default_og_image_select"><?php esc_html_e( 'Default Social Image', 'robot-food' ); ?></label></th>
 							<td>
 								<?php
 								$og_id  = Robot_Food::get_option( 'default_og_image' );
@@ -195,7 +299,7 @@ class Robot_Food_Settings {
 											<img src="<?php echo esc_url( $og_url ); ?>" alt="">
 										<?php endif; ?>
 									</div>
-									<button type="button" class="button" data-target="rf_default_og_image"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
+									<button type="button" id="rf_default_og_image_select" class="button" data-target="rf_default_og_image"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
 									<button type="button" class="button rf-image-remove<?php echo $og_id ? '' : ' hidden'; ?>" data-target="rf_default_og_image"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
 								</div>
 								<p class="description"><?php esc_html_e( 'Fallback image for Open Graph and X Cards.', 'robot-food' ); ?></p>
@@ -223,7 +327,7 @@ class Robot_Food_Settings {
 							</td>
 						</tr>
 						<tr data-keywords="schema logo image">
-							<th scope="row"><label><?php esc_html_e( 'Logo', 'robot-food' ); ?></label></th>
+							<th scope="row"><label for="rf_schema_logo_select"><?php esc_html_e( 'Logo', 'robot-food' ); ?></label></th>
 							<td>
 								<?php
 								$logo_id  = Robot_Food::get_option( 'schema_logo' );
@@ -236,7 +340,7 @@ class Robot_Food_Settings {
 											<img src="<?php echo esc_url( $logo_url ); ?>" alt="">
 										<?php endif; ?>
 									</div>
-									<button type="button" class="button" data-target="rf_schema_logo"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
+									<button type="button" id="rf_schema_logo_select" class="button" data-target="rf_schema_logo"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
 									<button type="button" class="button rf-image-remove<?php echo $logo_id ? '' : ' hidden'; ?>" data-target="rf_schema_logo"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
 								</div>
 							</td>
@@ -279,7 +383,7 @@ class Robot_Food_Settings {
 							<th scope="row"><?php esc_html_e( 'Exclude Post Types', 'robot-food' ); ?></th>
 							<td>
 								<?php foreach ( $post_types as $pt ) : ?>
-									<label style="display:block;margin-bottom:4px;">
+									<label>
 										<input
 											type="checkbox"
 											name="robot_food[sitemap_exclude_post_types][]"
@@ -377,6 +481,38 @@ class Robot_Food_Settings {
 								</p>
 							</td>
 						</tr>
+						<tr data-keywords="noindex 404 search login logout register category tag archive author attachment feed pagination">
+							<th scope="row"><?php esc_html_e( 'Noindex', 'robot-food' ); ?></th>
+							<td>
+								<?php
+								$noindex_options = array(
+									'noindex_404'        => __( '404 Pages', 'robot-food' ),
+									'noindex_search'     => __( 'Search Results', 'robot-food' ),
+									'noindex_login'      => __( 'Login Pages', 'robot-food' ),
+									'noindex_logout'     => __( 'Logout Pages', 'robot-food' ),
+									'noindex_register'   => __( 'Register Pages', 'robot-food' ),
+									'noindex_category'   => __( 'Categories', 'robot-food' ),
+									'noindex_tag'        => __( 'Tags', 'robot-food' ),
+									'noindex_date'       => __( 'Date Archives', 'robot-food' ),
+									'noindex_archive'    => __( 'Post Type Archives', 'robot-food' ),
+									'noindex_author'     => __( 'Author Archives', 'robot-food' ),
+									'noindex_attachment' => __( 'Attachments', 'robot-food' ),
+									'noindex_feed'       => __( 'Feed', 'robot-food' ),
+									'noindex_pagination' => __( 'Pagination (page 2+)', 'robot-food' ),
+								);
+								foreach ( $noindex_options as $key => $label ) :
+								?>
+									<label>
+										<input type="checkbox" name="robot_food[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( Robot_Food::get_option( $key, '0' ), '1' ); ?>>
+										<?php echo esc_html( $label ); ?>
+									</label>
+								<?php endforeach; ?>
+								<br>
+								<label for="rf_noindex_custom_slugs"><?php esc_html_e( 'Also noindex these URL paths', 'robot-food' ); ?></label>
+								<input type="text" id="rf_noindex_custom_slugs" name="robot_food[noindex_custom_slugs]" value="<?php echo esc_attr( Robot_Food::get_option( 'noindex_custom_slugs' ) ); ?>" class="large-text" placeholder="/cart, /checkout, /thank-you">
+								<p class="description"><?php esc_html_e( 'Comma-separated URL paths. Prefix matching, so /cart also covers /cart/, /cart?session=123, etc.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
 					</table>
 				</section>
 
@@ -421,6 +557,25 @@ class Robot_Food_Settings {
 				</section>
 
 				<?php submit_button(); ?>
+
+				<section class="rf-section recommendations" data-keywords="recommendations speed social sharing rss image primary category like button title case">
+					<h2><?php esc_html_e( 'Recommendations', 'robot-food' ); ?></h2>
+					<table class="form-table" role="presentation">
+						<tr>
+							<td colspan="2">
+								<p class="description"><?php esc_html_e( 'A few free plugins that pair well with Robot Food.', 'robot-food' ); ?></p>
+								<ul class="rf-recommendations">
+									<li><a href="https://wordpress.org/plugins/snappy/" target="_blank">Snappy</a> (<?php esc_html_e( 'speed optimization', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/simpleshare/" target="_blank">SimpleShare</a> (<?php esc_html_e( 'social sharing and auto-posting', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/rss-image/" target="_blank">RSS Image</a> (<?php esc_html_e( 'adds featured images to RSS feeds', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/primary-cat/" target="_blank">Primary Cat</a> (<?php esc_html_e( 'set a primary category per post', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/love-button/" target="_blank">Love Button</a> (<?php esc_html_e( 'like button for posts', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/auto-title-case/" target="_blank">Auto Title Case</a> (<?php esc_html_e( 'automatically formats post titles in title case', 'robot-food' ); ?>)</li>
+								</ul>
+							</td>
+						</tr>
+					</table>
+				</section>
 			</form>
 		</div>
 		<?php

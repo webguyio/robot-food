@@ -13,6 +13,7 @@ class Robot_Food {
 		add_action( 'wp_body_open', array( __CLASS__, 'output_after_body_open' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'output_before_body_close' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
+		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
 		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots_txt' ), 10, 2 );
 		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_document_title' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ) );
@@ -62,7 +63,11 @@ class Robot_Food {
 				return wp_strip_all_tags( get_the_excerpt( $post_id ) );
 			}
 		}
-		if ( is_home() || is_front_page() ) {
+		if ( is_home() || is_front_page() || is_front_page() && is_home() ) {
+			$desc = self::get_option( 'homepage_description' );
+			if ( $desc ) {
+				return $desc;
+			}
 			$desc = self::get_option( 'default_description' );
 			if ( $desc ) {
 				return $desc;
@@ -134,8 +139,9 @@ class Robot_Food {
 		$sep    = self::get_option( 'title_separator', '|' );
 		$site   = get_bloginfo( 'name' );
 		$format = self::get_option( 'title_format', 'title-site' );
-		if ( is_home() || is_front_page() ) {
-			return $site;
+		if ( is_home() || is_front_page() || is_front_page() && is_home() ) {
+			$homepage_title = self::get_option( 'homepage_title' );
+			return $homepage_title ? $homepage_title : $site;
 		}
 		if ( is_singular() ) {
 			$base = get_the_title( get_the_ID() );
@@ -401,6 +407,76 @@ class Robot_Food {
 		return $robots;
 	}
 
+	public static function filter_robots_noindex( $robots ) {
+		$path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH ) : '';
+		$path = trailingslashit( $path );
+		$noindex = false;
+		if ( self::get_option( 'noindex_404', '0' ) === '1' && is_404() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_search', '0' ) === '1' && is_search() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_category', '0' ) === '1' && is_category() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_tag', '0' ) === '1' && is_tag() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_date', '0' ) === '1' && is_date() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_archive', '0' ) === '1' && is_post_type_archive() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_author', '0' ) === '1' && is_author() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_attachment', '0' ) === '1' && is_attachment() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_feed', '0' ) === '1' && is_feed() ) {
+			$noindex = true;
+		}
+		if ( self::get_option( 'noindex_pagination', '0' ) === '1' ) {
+			global $paged, $page;
+			if ( $paged > 1 || $page > 1 ) {
+				$noindex = true;
+			}
+		}
+		$slug_checks = array();
+		if ( self::get_option( 'noindex_login', '0' ) === '1' ) {
+			$slug_checks = array_merge( $slug_checks, array( '/login/', '/log-in/', '/sign-in/', '/signin/', '/wp-login.php' ) );
+		}
+		if ( self::get_option( 'noindex_logout', '0' ) === '1' ) {
+			$slug_checks = array_merge( $slug_checks, array( '/logout/', '/log-out/', '/sign-out/', '/signout/' ) );
+		}
+		if ( self::get_option( 'noindex_register', '0' ) === '1' ) {
+			$slug_checks = array_merge( $slug_checks, array( '/register/', '/registration/', '/sign-up/', '/signup/' ) );
+		}
+		$custom_slugs = self::get_option( 'noindex_custom_slugs', '' );
+		if ( $custom_slugs ) {
+			$custom = array_filter( array_map( 'trim', explode( ',', $custom_slugs ) ) );
+			foreach ( $custom as $slug ) {
+				$slug_checks[] = trailingslashit( '/' . ltrim( $slug, '/' ) );
+			}
+		}
+		foreach ( $slug_checks as $slug ) {
+			if ( str_starts_with( $path, $slug ) || $path === rtrim( $slug, '/' ) ) {
+				$noindex = true;
+				break;
+			}
+		}
+		if ( $noindex ) {
+			$robots['noindex']  = true;
+			$robots['nofollow'] = true;
+			unset( $robots['max-image-preview'] );
+			unset( $robots['max-snippet'] );
+			unset( $robots['max-video-preview'] );
+		}
+		return $robots;
+	}
+
 	public static function filter_robots_txt( $output, $_public ) {
 		$saved = self::get_option( 'robots_txt' );
 		if ( $saved ) {
@@ -561,6 +637,33 @@ class Robot_Food {
 				continue;
 			}
 			echo '- [' . esc_html( get_the_title( $post ) ) . '](' . esc_url( get_permalink( $post ) ) . ')' . "\n";
+		}
+		$post_types = get_post_types( array(
+			'public'   => true,
+			'_builtin' => false,
+		) );
+		foreach ( $post_types as $post_type ) {
+			$cpt_posts = get_posts( array(
+				'post_type'      => $post_type,
+				'post_status'    => 'publish',
+				'posts_per_page' => 100,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			) );
+			if ( empty( $cpt_posts ) ) {
+				continue;
+			}
+			$post_type_obj = get_post_type_object( $post_type );
+			$label         = $post_type_obj ? $post_type_obj->labels->name : $post_type;
+			echo "\n## " . esc_html( $label ) . "\n\n";
+			foreach ( $cpt_posts as $cpt_post ) {
+				$noindex  = get_post_meta( $cpt_post->ID, '_robot_food_noindex', true );
+				$excluded = get_post_meta( $cpt_post->ID, '_robot_food_llms_exclude', true );
+				if ( '1' === $noindex || '1' === $excluded || in_array( $cpt_post->ID, $llms_excluded_ids, true ) ) {
+					continue;
+				}
+				echo '- [' . esc_html( get_the_title( $cpt_post ) ) . '](' . esc_url( get_permalink( $cpt_post ) ) . ')' . "\n";
+			}
 		}
 		$extra = self::get_option( 'llms_extra', '' );
 		if ( $extra ) {
