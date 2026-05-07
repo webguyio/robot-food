@@ -37,7 +37,7 @@ Robot Food isn't fancy, it's just useful, which is also the right mindset for SE
 * llms.txt with smart defaults and customizable header
 * robots.txt editor
 * .htaccess editor
-* Custom code: head, after body open, before body close
+* Tracking & verification: Google Analytics 4, Google Tag Manager, Google Search Console, Bing Webmaster, Meta Pixel, Microsoft Clarity, Hotjar, Pinterest Tag, TikTok Pixel, X Pixel
 * Pagination canonicals (prev/next)
 * Sitemap with customization: exclude post types, taxonomies, and individual posts
 * Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt

@@ -95,9 +95,22 @@ class Robot_Food_Settings {
 				$output[ $field ] = array();
 			}
 		}
-		$code_fields = array( 'code_head', 'code_body_open', 'code_body_close', 'robots_txt' );
-		foreach ( $code_fields as $field ) {
-			$output[ $field ] = isset( $input[ $field ] ) ? wp_unslash( $input[ $field ] ) : '';
+		$output['robots_txt'] = isset( $input['robots_txt'] ) ? sanitize_textarea_field( wp_unslash( $input['robots_txt'] ) ) : '';
+		$tracking_fields = array(
+			'ga4_id'            => '/^G-[A-Z0-9]+$/',
+			'gtm_id'            => '/^GTM-[A-Z0-9]+$/',
+			'gsc_verification'  => '/^[A-Za-z0-9_-]+$/',
+			'bing_verification' => '/^[A-Za-z0-9]+$/',
+			'meta_pixel_id'     => '/^[0-9]+$/',
+			'clarity_id'        => '/^[a-z0-9]{10}$/',
+			'hotjar_id'         => '/^[0-9]+$/',
+			'pinterest_id'      => '/^[0-9]+$/',
+			'tiktok_id'         => '/^[A-Za-z0-9]+$/',
+			'x_pixel_id'        => '/^[A-Za-z0-9]+$/',
+		);
+		foreach ( $tracking_fields as $field => $pattern ) {
+			$value = isset( $input[ $field ] ) ? sanitize_text_field( wp_unslash( $input[ $field ] ) ) : '';
+			$output[ $field ] = ( $value && preg_match( $pattern, $value ) ) ? $value : '';
 		}
 		if ( !empty( $output['robots_txt'] ) ) {
 			self::write_robots_txt( $output['robots_txt'] );
@@ -110,13 +123,11 @@ class Robot_Food_Settings {
 
 	public static function write_robots_txt( $content ) {
 		$path = ABSPATH . 'robots.txt';
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Direct file write required for robots.txt; WP_Filesystem requires form context not available in settings save.
 		file_put_contents( $path, $content );
 	}
 
 	public static function write_htaccess( $content ) {
 		$path = ABSPATH . '.htaccess';
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Direct file write required for .htaccess; WP_Filesystem requires form context not available in settings save.
 		file_put_contents( $path, $content );
 	}
 
@@ -132,7 +143,6 @@ class Robot_Food_Settings {
 	public static function read_htaccess() {
 		$path = ABSPATH . '.htaccess';
 		if ( file_exists( $path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local file; no remote URL involved.
 			return file_get_contents( $path );
 		}
 		return '';
@@ -529,31 +539,84 @@ class Robot_Food_Settings {
 					</table>
 				</section>
 
-				<section class="rf-section" data-keywords="custom code head body scripts analytics tracking verification">
-					<h2><?php esc_html_e( 'Custom Code', 'robot-food' ); ?></h2>
+				<section class="rf-section" data-keywords="tracking verification analytics google analytics tag manager search console bing meta pixel clarity hotjar pinterest tiktok x twitter">
+					<h2><?php esc_html_e( 'Tracking &amp; Verification', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
-						<tr data-keywords="head code scripts meta tags verification analytics">
-							<th scope="row"><label for="rf_code_head"><?php esc_html_e( 'Head', 'robot-food' ); ?></label></th>
+						<tr data-keywords="google analytics ga4 measurement id">
+							<th scope="row"><label for="rf_ga4_id"><?php esc_html_e( 'Google Analytics 4', 'robot-food' ); ?></label></th>
 							<td>
-								<textarea id="rf_code_head" name="robot_food[code_head]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_head' ) ); ?></textarea>
-								<p class="description"><?php esc_html_e( 'Added inside &lt;head&gt;. Use for verification tags, analytics scripts, etc.', 'robot-food' ); ?></p>
+								<input type="text" id="rf_ga4_id" name="robot_food[ga4_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'ga4_id' ) ); ?>" class="regular-text" placeholder="G-XXXXXXXXXX">
 							</td>
 						</tr>
-						<tr data-keywords="body open after body scripts tracking tag manager">
-							<th scope="row"><label for="rf_code_body_open"><?php esc_html_e( 'After &lt;body&gt;', 'robot-food' ); ?></label></th>
+						<tr data-keywords="google tag manager gtm container id">
+							<th scope="row"><label for="rf_gtm_id"><?php esc_html_e( 'Google Tag Manager', 'robot-food' ); ?></label></th>
 							<td>
-								<textarea id="rf_code_body_open" name="robot_food[code_body_open]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_body_open' ) ); ?></textarea>
-								<p class="description"><?php esc_html_e( 'Added immediately after the opening &lt;body&gt; tag. Use for Google Tag Manager noscript, etc.', 'robot-food' ); ?></p>
+								<input type="text" id="rf_gtm_id" name="robot_food[gtm_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'gtm_id' ) ); ?>" class="regular-text" placeholder="GTM-XXXXXXX">
 							</td>
 						</tr>
-						<tr data-keywords="body close before body footer scripts">
-							<th scope="row"><label for="rf_code_body_close"><?php esc_html_e( 'Before &lt;/body&gt;', 'robot-food' ); ?></label></th>
+						<tr data-keywords="google search console verification meta tag">
+							<th scope="row"><label for="rf_gsc_verification"><?php esc_html_e( 'Google Search Console', 'robot-food' ); ?></label></th>
 							<td>
-								<textarea id="rf_code_body_close" name="robot_food[code_body_close]" rows="6" class="large-text code"><?php echo esc_textarea( Robot_Food::get_option( 'code_body_close' ) ); ?></textarea>
-								<p class="description"><?php esc_html_e( 'Added before the closing &lt;/body&gt; tag.', 'robot-food' ); ?></p>
+								<input type="text" id="rf_gsc_verification" name="robot_food[gsc_verification]" value="<?php echo esc_attr( Robot_Food::get_option( 'gsc_verification' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX">
+								<p class="description"><?php esc_html_e( 'Enter only the content value from the meta tag verification code.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="bing microsoft webmaster verification meta tag">
+							<th scope="row"><label for="rf_bing_verification"><?php esc_html_e( 'Bing Webmaster', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_bing_verification" name="robot_food[bing_verification]" value="<?php echo esc_attr( Robot_Food::get_option( 'bing_verification' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX">
+								<p class="description"><?php esc_html_e( 'Enter only the content value from the meta tag verification code.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<tr data-keywords="facebook meta pixel id">
+							<th scope="row"><label for="rf_meta_pixel_id"><?php esc_html_e( 'Meta Pixel', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_meta_pixel_id" name="robot_food[meta_pixel_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'meta_pixel_id' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXXXXXXXXXX">
+							</td>
+						</tr>
+						<tr data-keywords="microsoft clarity project id">
+							<th scope="row"><label for="rf_clarity_id"><?php esc_html_e( 'Microsoft Clarity', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_clarity_id" name="robot_food[clarity_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'clarity_id' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXX">
+							</td>
+						</tr>
+						<tr data-keywords="hotjar site id">
+							<th scope="row"><label for="rf_hotjar_id"><?php esc_html_e( 'Hotjar', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_hotjar_id" name="robot_food[hotjar_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'hotjar_id' ) ); ?>" class="regular-text" placeholder="XXXXXXX">
+							</td>
+						</tr>
+						<tr data-keywords="pinterest tag id">
+							<th scope="row"><label for="rf_pinterest_id"><?php esc_html_e( 'Pinterest Tag', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_pinterest_id" name="robot_food[pinterest_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'pinterest_id' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXXXXXXXXX">
+							</td>
+						</tr>
+						<tr data-keywords="tiktok pixel id">
+							<th scope="row"><label for="rf_tiktok_id"><?php esc_html_e( 'TikTok Pixel', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_tiktok_id" name="robot_food[tiktok_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'tiktok_id' ) ); ?>" class="regular-text" placeholder="XXXXXXXXXXXXXXXXXXXX">
+							</td>
+						</tr>
+						<tr data-keywords="x twitter pixel id">
+							<th scope="row"><label for="rf_x_pixel_id"><?php esc_html_e( 'X Pixel', 'robot-food' ); ?></label></th>
+							<td>
+								<input type="text" id="rf_x_pixel_id" name="robot_food[x_pixel_id]" value="<?php echo esc_attr( Robot_Food::get_option( 'x_pixel_id' ) ); ?>" class="regular-text" placeholder="XXXXX">
 							</td>
 						</tr>
 					</table>
+					<p class="description">
+						<?php
+						printf(
+							wp_kses(
+								/* translators: %s: WPCode plugin URL */
+								__( 'Need to add custom scripts? We recommend %s.', 'robot-food' ),
+								array( 'a' => array( 'href' => array(), 'target' => array() ) )
+							),
+							'<a href="https://wordpress.org/plugins/insert-headers-and-footers/" target="_blank">WPCode</a>'
+						);
+						?>
+					</p>
 				</section>
 
 				<?php submit_button(); ?>

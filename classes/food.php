@@ -10,8 +10,7 @@ class Robot_Food {
 	public static function init() {
 		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
 		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 2 );
-		add_action( 'wp_body_open', array( __CLASS__, 'output_after_body_open' ) );
-		add_action( 'wp_footer', array( __CLASS__, 'output_before_body_close' ) );
+		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
 		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots_txt' ), 10, 2 );
@@ -199,23 +198,58 @@ class Robot_Food {
 			echo '<meta name="twitter:card" content="summary">' . "\n";
 		}
 		self::output_schema();
-		$head_code = self::get_option( 'code_head' );
-		if ( $head_code ) {
-			echo $head_code . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional arbitrary code injection field, documented in settings UI.
+		self::output_tracking_head();
+	}
+
+	public static function output_tracking_head() {
+		$ga4_id = self::get_option( 'ga4_id' );
+		if ( $ga4_id && preg_match( '/^G-[A-Z0-9]+$/', $ga4_id ) ) {
+			wp_enqueue_script( 'robot-food-ga4', 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $ga4_id ), array(), ROBOT_FOOD_VER, false );
+			wp_script_add_data( 'robot-food-ga4', 'async', true );
+			echo '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","' . esc_js( $ga4_id ) . '");</script>' . "\n";
+		}
+		$gtm_id = self::get_option( 'gtm_id' );
+		if ( $gtm_id && preg_match( '/^GTM-[A-Z0-9]+$/', $gtm_id ) ) {
+			echo '<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","' . esc_js( $gtm_id ) . '");</script>' . "\n";
+		}
+		$gsc = self::get_option( 'gsc_verification' );
+		if ( $gsc && preg_match( '/^[A-Za-z0-9_-]+$/', $gsc ) ) {
+			echo '<meta name="google-site-verification" content="' . esc_attr( $gsc ) . '">' . "\n";
+		}
+		$bing = self::get_option( 'bing_verification' );
+		if ( $bing && preg_match( '/^[A-Za-z0-9]+$/', $bing ) ) {
+			echo '<meta name="msvalidate.01" content="' . esc_attr( $bing ) . '">' . "\n";
+		}
+		$meta_pixel = self::get_option( 'meta_pixel_id' );
+		if ( $meta_pixel && preg_match( '/^[0-9]+$/', $meta_pixel ) ) {
+			echo '<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","' . esc_js( $meta_pixel ) . '");fbq("track","PageView");</script>' . "\n";
+		}
+		$clarity = self::get_option( 'clarity_id' );
+		if ( $clarity && preg_match( '/^[a-z0-9]{10}$/', $clarity ) ) {
+			echo '<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","' . esc_js( $clarity ) . '");</script>' . "\n";
+		}
+		$hotjar = self::get_option( 'hotjar_id' );
+		if ( $hotjar && preg_match( '/^[0-9]+$/', $hotjar ) ) {
+			echo '<script>(function(h,o,t,j,a,r){h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};h._hjSettings={hjid:' . esc_js( $hotjar ) . ',hjsv:6};a=o.getElementsByTagName("head")[0];r=o.createElement("script");r.async=1;r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;a.appendChild(r)})(window,document,"https://static.hotjar.com/c/hotjar-",".js?sv=");</script>' . "\n";
+		}
+		$pinterest = self::get_option( 'pinterest_id' );
+		if ( $pinterest && preg_match( '/^[0-9]+$/', $pinterest ) ) {
+			echo '<script>!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");pintrk("load","' . esc_js( $pinterest ) . '");pintrk("page");</script>' . "\n";
+		}
+		$tiktok = self::get_option( 'tiktok_id' );
+		if ( $tiktok && preg_match( '/^[A-Za-z0-9]+$/', $tiktok ) ) {
+			echo '<script>!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._r=ttq._r||{};n&&(ttq._r[e]=n);var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load("' . esc_js( $tiktok ) . '");ttq.page();}(window,document,"ttq");</script>' . "\n";
+		}
+		$x_pixel = self::get_option( 'x_pixel_id' );
+		if ( $x_pixel && preg_match( '/^[A-Za-z0-9]+$/', $x_pixel ) ) {
+			echo '<script>!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments)},s.version="1.1",s.queue=[],u=t.createElement(n),u.async=!0,u.src="https://static.ads-twitter.com/uwt.js",a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,"script");twq("config","' . esc_js( $x_pixel ) . '");</script>' . "\n";
 		}
 	}
 
-	public static function output_after_body_open() {
-		$code = self::get_option( 'code_body_open' );
-		if ( $code ) {
-			echo $code . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional arbitrary code injection field, documented in settings UI.
-		}
-	}
-
-	public static function output_before_body_close() {
-		$code = self::get_option( 'code_body_close' );
-		if ( $code ) {
-			echo $code . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional arbitrary code injection field, documented in settings UI.
+	public static function output_tracking_body() {
+		$gtm_id = self::get_option( 'gtm_id' );
+		if ( $gtm_id && preg_match( '/^GTM-[A-Z0-9]+$/', $gtm_id ) ) {
+			echo '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . esc_attr( $gtm_id ) . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
 		}
 	}
 
@@ -667,7 +701,7 @@ class Robot_Food {
 		}
 		$extra = self::get_option( 'llms_extra', '' );
 		if ( $extra ) {
-			echo "\n" . $extra . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional arbitrary content field for llms.txt, documented in settings UI.
+			echo "\n" . esc_html( $extra ) . "\n";
 		}
 		exit;
 	}

@@ -161,11 +161,15 @@ class Robot_Food_Meta {
 			'og_description' => 'sanitize_text_field',
 			'schema_type'    => 'sanitize_text_field',
 		);
-		foreach ( $fields as $field => $sanitizer ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Input is sanitized via $sanitizer callback in the same expression.
-			$value = isset( $_POST[ 'rf_' . $field ] ) ? call_user_func( $sanitizer, wp_unslash( $_POST[ 'rf_' . $field ] ) ) : '';
+		$text_fields = array( 'title', 'og_title', 'og_description', 'schema_type' );
+		foreach ( $text_fields as $field ) {
+			$value = isset( $_POST[ 'rf_' . $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'rf_' . $field ] ) ) : '';
 			update_post_meta( $post_id, '_robot_food_' . $field, $value );
 		}
+		$description = isset( $_POST['rf_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rf_description'] ) ) : '';
+		update_post_meta( $post_id, '_robot_food_description', $description );
+		$canonical = isset( $_POST['rf_canonical'] ) ? esc_url_raw( wp_unslash( $_POST['rf_canonical'] ) ) : '';
+		update_post_meta( $post_id, '_robot_food_canonical', $canonical );
 		$og_image = isset( $_POST['rf_og_image'] ) ? absint( $_POST['rf_og_image'] ) : 0;
 		update_post_meta( $post_id, '_robot_food_og_image', $og_image );
 		$noindex         = isset( $_POST['rf_noindex'] ) && '1' === $_POST['rf_noindex'] ? '1' : '0';
