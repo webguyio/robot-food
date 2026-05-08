@@ -257,9 +257,10 @@ class Robot_Food_Settings {
 						<tr data-keywords="title format order site name">
 							<th scope="row"><label for="rf_title_format"><?php esc_html_e( 'Format', 'robot-food' ); ?></label></th>
 							<td>
+								<?php $sep = Robot_Food::get_option( 'title_separator', '|' ); ?>
 								<select id="rf_title_format" name="robot_food[title_format]">
-									<option value="title-site" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'title-site' ); ?>><?php esc_html_e( 'Page Title | Site Name', 'robot-food' ); ?></option>
-									<option value="site-title" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'site-title' ); ?>><?php esc_html_e( 'Site Name | Page Title', 'robot-food' ); ?></option>
+									<option value="title-site" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'title-site' ); ?>><?php echo esc_html( sprintf( __( 'Page Title %s Site Name', 'robot-food' ), $sep ) ); ?></option>
+									<option value="site-title" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'site-title' ); ?>><?php echo esc_html( sprintf( __( 'Site Name %s Page Title', 'robot-food' ), $sep ) ); ?></option>
 								</select>
 							</td>
 						</tr>
@@ -267,6 +268,7 @@ class Robot_Food_Settings {
 							<th scope="row"><label for="rf_title_separator"><?php esc_html_e( 'Separator', 'robot-food' ); ?></label></th>
 							<td>
 								<input type="text" id="rf_title_separator" name="robot_food[title_separator]" value="<?php echo esc_attr( Robot_Food::get_option( 'title_separator', '|' ) ); ?>" class="small-text">
+								<p class="description"><?php esc_html_e( 'Popular options: | • — ← →', 'robot-food' ); ?></p>
 							</td>
 						</tr>
 					</table>
