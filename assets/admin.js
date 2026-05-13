@@ -101,8 +101,76 @@
 		}
 	}
 
+	function initRedirectRows() {
+		var container = document.querySelector('.rf-redirects');
+		if (!container) return;
+		var fromLabel = container.getAttribute('data-from-label') || 'From URL';
+		var toLabel = container.getAttribute('data-to-label') || 'To URL';
+		function rowIsEmpty(row) {
+			var inputs = row.querySelectorAll('input');
+			var empty = true;
+			inputs.forEach(function (input) {
+				if (input.value.trim()) empty = false;
+			});
+			return empty;
+		}
+		function reindex() {
+			container.querySelectorAll('.rf-redirect-row').forEach(function (row, i) {
+				row.querySelectorAll('input').forEach(function (input) {
+					var key = input.name.indexOf('[from]') !== -1 ? 'from' : 'to';
+					input.name = 'robot_food[htaccess_redirects][' + i + '][' + key + ']';
+				});
+			});
+		}
+		function removeEmptyTrailingRows() {
+			var rows = container.querySelectorAll('.rf-redirect-row');
+			for (var i = rows.length - 1; i > 0; i--) {
+				if (rowIsEmpty(rows[i])) {
+					rows[i].remove();
+				} else {
+					break;
+				}
+			}
+			reindex();
+		}
+		function addRowIfNeeded() {
+			var rows = container.querySelectorAll('.rf-redirect-row');
+			var lastRow = rows[rows.length - 1];
+			if (!lastRow) return;
+			if (!rowIsEmpty(lastRow)) {
+				var index = rows.length;
+				var newRow = document.createElement('div');
+				newRow.className = 'rf-redirect-row';
+				var fromInput = document.createElement('input');
+				fromInput.type = 'url';
+				fromInput.name = 'robot_food[htaccess_redirects][' + index + '][from]';
+				fromInput.placeholder = fromLabel;
+				fromInput.className = 'regular-text';
+				var toInput = document.createElement('input');
+				toInput.type = 'url';
+				toInput.name = 'robot_food[htaccess_redirects][' + index + '][to]';
+				toInput.placeholder = toLabel;
+				toInput.className = 'regular-text';
+				newRow.appendChild( fromInput );
+				newRow.appendChild( toInput );
+				container.appendChild(newRow);
+				newRow.querySelectorAll('input').forEach(function (input) {
+					input.addEventListener('input', handleInput);
+				});
+			}
+		}
+		function handleInput() {
+			removeEmptyTrailingRows();
+			addRowIfNeeded();
+		}
+		container.querySelectorAll('.rf-redirect-row input').forEach(function (input) {
+			input.addEventListener('input', handleInput);
+		});
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		initSearch();
+		initRedirectRows();
 		if (typeof wp !== 'undefined' && wp.media) {
 			initMediaPickers();
 		}

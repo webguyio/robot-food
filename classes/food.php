@@ -9,6 +9,7 @@ class Robot_Food {
 
 	public static function init() {
 		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_tracking_scripts' ) );
 		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 2 );
 		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
@@ -198,20 +199,9 @@ class Robot_Food {
 			echo '<meta name="twitter:card" content="summary">' . "\n";
 		}
 		self::output_schema();
-		self::output_tracking_head();
 	}
 
 	public static function output_tracking_head() {
-		$ga4_id = self::get_option( 'ga4_id' );
-		if ( $ga4_id && preg_match( '/^G-[A-Z0-9]+$/', $ga4_id ) ) {
-			wp_enqueue_script( 'robot-food-ga4', 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $ga4_id ), array(), ROBOT_FOOD_VER, false );
-			wp_script_add_data( 'robot-food-ga4', 'async', true );
-			echo '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","' . esc_js( $ga4_id ) . '");</script>' . "\n";
-		}
-		$gtm_id = self::get_option( 'gtm_id' );
-		if ( $gtm_id && preg_match( '/^GTM-[A-Z0-9]+$/', $gtm_id ) ) {
-			echo '<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","' . esc_js( $gtm_id ) . '");</script>' . "\n";
-		}
 		$gsc = self::get_option( 'gsc_verification' );
 		if ( $gsc && preg_match( '/^[A-Za-z0-9_-]+$/', $gsc ) ) {
 			echo '<meta name="google-site-verification" content="' . esc_attr( $gsc ) . '">' . "\n";
@@ -220,29 +210,56 @@ class Robot_Food {
 		if ( $bing && preg_match( '/^[A-Za-z0-9]+$/', $bing ) ) {
 			echo '<meta name="msvalidate.01" content="' . esc_attr( $bing ) . '">' . "\n";
 		}
+	}
+
+	public static function enqueue_tracking_scripts() {
+		$ga4_id = self::get_option( 'ga4_id' );
+		if ( $ga4_id && preg_match( '/^G-[A-Z0-9]+$/', $ga4_id ) ) {
+			wp_enqueue_script( 'robot-food-ga4', 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $ga4_id ), array(), ROBOT_FOOD_VER, false );
+			wp_script_add_data( 'robot-food-ga4', 'async', true );
+			wp_add_inline_script( 'robot-food-ga4', 'window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","' . esc_js( $ga4_id ) . '");' );
+		}
+		$gtm_id = self::get_option( 'gtm_id' );
+		if ( $gtm_id && preg_match( '/^GTM-[A-Z0-9]+$/', $gtm_id ) ) {
+			wp_register_script( 'robot-food-gtm', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-gtm' );
+			wp_add_inline_script( 'robot-food-gtm', '(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","' . esc_js( $gtm_id ) . '");' );
+		}
 		$meta_pixel = self::get_option( 'meta_pixel_id' );
 		if ( $meta_pixel && preg_match( '/^[0-9]+$/', $meta_pixel ) ) {
-			echo '<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","' . esc_js( $meta_pixel ) . '");fbq("track","PageView");</script>' . "\n";
+			wp_register_script( 'robot-food-meta-pixel', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-meta-pixel' );
+			wp_add_inline_script( 'robot-food-meta-pixel', '!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","' . esc_js( $meta_pixel ) . '");fbq("track","PageView");' );
 		}
 		$clarity = self::get_option( 'clarity_id' );
 		if ( $clarity && preg_match( '/^[a-z0-9]{10}$/', $clarity ) ) {
-			echo '<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","' . esc_js( $clarity ) . '");</script>' . "\n";
+			wp_register_script( 'robot-food-clarity', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-clarity' );
+			wp_add_inline_script( 'robot-food-clarity', '(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","' . esc_js( $clarity ) . '");' );
 		}
 		$hotjar = self::get_option( 'hotjar_id' );
 		if ( $hotjar && preg_match( '/^[0-9]+$/', $hotjar ) ) {
-			echo '<script>(function(h,o,t,j,a,r){h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};h._hjSettings={hjid:' . esc_js( $hotjar ) . ',hjsv:6};a=o.getElementsByTagName("head")[0];r=o.createElement("script");r.async=1;r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;a.appendChild(r)})(window,document,"https://static.hotjar.com/c/hotjar-",".js?sv=");</script>' . "\n";
+			wp_register_script( 'robot-food-hotjar', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-hotjar' );
+			wp_add_inline_script( 'robot-food-hotjar', '(function(h,o,t,j,a,r){h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};h._hjSettings={hjid:' . esc_js( $hotjar ) . ',hjsv:6};a=o.getElementsByTagName("head")[0];r=o.createElement("script");r.async=1;r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;a.appendChild(r)})(window,document,"https://static.hotjar.com/c/hotjar-",".js?sv=");' );
 		}
 		$pinterest = self::get_option( 'pinterest_id' );
 		if ( $pinterest && preg_match( '/^[0-9]+$/', $pinterest ) ) {
-			echo '<script>!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");pintrk("load","' . esc_js( $pinterest ) . '");pintrk("page");</script>' . "\n";
+			wp_register_script( 'robot-food-pinterest', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-pinterest' );
+			wp_add_inline_script( 'robot-food-pinterest', '!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");pintrk("load","' . esc_js( $pinterest ) . '");pintrk("page");' );
 		}
 		$tiktok = self::get_option( 'tiktok_id' );
 		if ( $tiktok && preg_match( '/^[A-Za-z0-9]+$/', $tiktok ) ) {
-			echo '<script>!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._r=ttq._r||{};n&&(ttq._r[e]=n);var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load("' . esc_js( $tiktok ) . '");ttq.page();}(window,document,"ttq");</script>' . "\n";
+			wp_register_script( 'robot-food-tiktok', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-tiktok' );
+			wp_add_inline_script( 'robot-food-tiktok', '!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._r=ttq._r||{};n&&(ttq._r[e]=n);var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load("' . esc_js( $tiktok ) . '");ttq.page();}(window,document,"ttq");' );
 		}
 		$x_pixel = self::get_option( 'x_pixel_id' );
 		if ( $x_pixel && preg_match( '/^[A-Za-z0-9]+$/', $x_pixel ) ) {
-			echo '<script>!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments)},s.version="1.1",s.queue=[],u=t.createElement(n),u.async=!0,u.src="https://static.ads-twitter.com/uwt.js",a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,"script");twq("config","' . esc_js( $x_pixel ) . '");</script>' . "\n";
+			wp_register_script( 'robot-food-x-pixel', '', array(), ROBOT_FOOD_VER, false );
+			wp_enqueue_script( 'robot-food-x-pixel' );
+			wp_add_inline_script( 'robot-food-x-pixel', '!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments)},s.version="1.1",s.queue=[],u=t.createElement(n),u.async=!0,u.src="https://static.ads-twitter.com/uwt.js",a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,"script");twq("config","' . esc_js( $x_pixel ) . '");' );
 		}
 	}
 
@@ -263,7 +280,7 @@ class Robot_Food {
 		$socials     = self::get_option( 'schema_socials', '' );
 		$same_as     = array();
 		if ( $socials ) {
-			$same_as = array_values( array_filter( array_map( 'trim', explode( "\n", $socials ) ) ) );
+			$same_as = array_values( array_filter( array_map( 'esc_url_raw', array_map( 'trim', explode( "\n", $socials ) ) ) ) );
 		}
 		$website_schema = array(
 			'@context' => 'https://schema.org',
@@ -271,7 +288,7 @@ class Robot_Food {
 			'name'     => $site_name,
 			'url'      => $site_url,
 		);
-		echo '<script type="application/ld+json">' . wp_json_encode( $website_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+		echo '<script type="application/ld+json">' . wp_json_encode( $website_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 		$entity = array(
 			'@context' => 'https://schema.org',
 			'@type'    => $schema_type,
@@ -289,7 +306,7 @@ class Robot_Food {
 			$post        = get_post( $post_id );
 			if ( !$post ) {
 				echo '<script type="application/ld+json">' . wp_json_encode( $entity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
-				self::get_breadcrumb_schema();
+				self::output_breadcrumb_schema();
 				return;
 			}
 			$schema_override = self::get_post_meta( $post_id, 'schema_type' );
@@ -321,9 +338,9 @@ class Robot_Food {
 			if ( $desc ) {
 				$post_schema['description'] = $desc;
 			}
-			echo '<script type="application/ld+json">' . wp_json_encode( $post_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+			echo '<script type="application/ld+json">' . wp_json_encode( $post_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 		}
-		echo '<script type="application/ld+json">' . wp_json_encode( $entity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+		echo '<script type="application/ld+json">' . wp_json_encode( $entity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 		self::output_breadcrumb_schema();
 	}
 
@@ -401,7 +418,7 @@ class Robot_Food {
 			'@type'           => 'BreadcrumbList',
 			'itemListElement' => $crumbs,
 		);
-		echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+		echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 	}
 
 	public static function output_pagination_links() {
@@ -412,7 +429,7 @@ class Robot_Food {
 		$max  = isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 1;
 		$page = max( 1, (int) ( get_query_var( 'paged' ) ?: 1 ) );
 		if ( is_singular() ) {
-			$max  = (int) $wp_query->post->post_content ? substr_count( $wp_query->post->post_content, '<!--nextpage-->' ) + 1 : 1;
+			$max  = isset( $wp_query->post->post_content ) ? substr_count( $wp_query->post->post_content, '<!--nextpage-->' ) + 1 : 1;
 			$page = max( 1, (int) ( get_query_var( 'page' ) ?: 1 ) );
 		}
 		if ( $max < 2 ) {
@@ -473,8 +490,7 @@ class Robot_Food {
 			$noindex = true;
 		}
 		if ( self::get_option( 'noindex_pagination', '0' ) === '1' ) {
-			global $paged, $page;
-			if ( $paged > 1 || $page > 1 ) {
+			if ( get_query_var( 'paged' ) > 1 || get_query_var( 'page' ) > 1 ) {
 				$noindex = true;
 			}
 		}
@@ -537,7 +553,6 @@ class Robot_Food {
 			exit;
 		}
 		$excluded_post_types = self::get_option( 'sitemap_exclude_post_types', array() );
-		$excluded_taxs       = self::get_option( 'sitemap_exclude_taxonomies', array() );
 		$excluded_post_ids   = array_filter( array_map( 'intval', explode( ',', self::get_option( 'sitemap_exclude_posts', '' ) ) ) );
 		$excluded_term_ids   = array_filter( array_map( 'intval', explode( ',', self::get_option( 'sitemap_exclude_terms', '' ) ) ) );
 		$urls = array();
@@ -570,9 +585,6 @@ class Robot_Food {
 		}
 		$taxonomies = get_taxonomies( array( 'public' => true ) );
 		foreach ( $taxonomies as $taxonomy ) {
-			if ( in_array( $taxonomy, $excluded_taxs, true ) ) {
-				continue;
-			}
 			$terms = get_terms( array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => true,

@@ -153,19 +153,17 @@ class Robot_Food_Meta {
 		if ( in_array( $post->post_type, $excluded, true ) ) {
 			return;
 		}
-		$fields = array(
-			'title'          => 'sanitize_text_field',
-			'description'    => 'sanitize_textarea_field',
-			'canonical'      => 'esc_url_raw',
-			'og_title'       => 'sanitize_text_field',
-			'og_description' => 'sanitize_text_field',
-			'schema_type'    => 'sanitize_text_field',
-		);
-		$text_fields = array( 'title', 'og_title', 'og_description', 'schema_type' );
+		$text_fields = array( 'title', 'og_title', 'og_description' );
 		foreach ( $text_fields as $field ) {
 			$value = isset( $_POST[ 'rf_' . $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'rf_' . $field ] ) ) : '';
 			update_post_meta( $post_id, '_robot_food_' . $field, $value );
 		}
+		$allowed_schema_types = array( '', 'WebPage', 'Article', 'BlogPosting', 'NewsArticle', 'Product', 'FAQPage', 'HowTo', 'Event', 'LocalBusiness' );
+		$schema_type = isset( $_POST['rf_schema_type'] ) ? sanitize_text_field( wp_unslash( $_POST['rf_schema_type'] ) ) : '';
+		if ( !in_array( $schema_type, $allowed_schema_types, true ) ) {
+			$schema_type = '';
+		}
+		update_post_meta( $post_id, '_robot_food_schema_type', $schema_type );
 		$description = isset( $_POST['rf_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rf_description'] ) ) : '';
 		update_post_meta( $post_id, '_robot_food_description', $description );
 		$canonical = isset( $_POST['rf_canonical'] ) ? esc_url_raw( wp_unslash( $_POST['rf_canonical'] ) ) : '';

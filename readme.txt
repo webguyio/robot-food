@@ -34,10 +34,10 @@ Robot Food isn't fancy, it's just useful, which is also the right mindset for SE
 * Default social image for Open Graph and X Cards
 * Schema markup (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList)
 * Social profiles (sameAs)
-* Sitemap with option to exclude post types, taxonomies, and individual posts
+* Sitemap with option to exclude post types, individual posts, and terms
 * llms.txt with smart defaults and customizable header
-* robots.txt editor
-* .htaccess editor
+* robots.txt customization via WordPress filter
+* .htaccess: force HTTPS, remove www, 301 redirects (Apache only)
 * Tracking & verification (Google Analytics 4, Google Tag Manager, Google Search Console, Bing Webmaster, Meta Pixel, Microsoft Clarity, Hotjar, Pinterest Tag, TikTok Pixel, X Pixel)
 * Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
 * Works with all public post types including WooCommerce, bbPress, and custom post types
@@ -59,6 +59,12 @@ No. This plugin is intentionally 100% free with all features available to everyo
 = Does this work with WooCommerce products and other custom post types? =
 
 Yes. The meta box appears on all public post types including WooCommerce products.
+
+= Does this plugin send data to third parties? =
+
+Only if you configure tracking services in the Tracking & Verification settings. When a service ID is entered, the relevant third-party script is loaded and data is sent to that service according to their own terms. No data is sent without your configuration.
+
+Services that can be enabled and their privacy policies: [Google Analytics](https://policies.google.com/privacy) | [Google Tag Manager](https://policies.google.com/privacy) | [Meta Pixel](https://www.facebook.com/privacy/policy) | [Microsoft Clarity](https://www.microsoft.com/privacy/privacystatement) | [Hotjar](https://www.hotjar.com/legal/policies/privacy/) | [Pinterest](https://policy.pinterest.com/privacy-policy) | [TikTok](https://www.tiktok.com/legal/page/us/privacy-policy/en) | [X](https://x.com/privacy)
 
 == Changelog ==
 

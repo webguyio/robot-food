@@ -130,6 +130,16 @@
 	margin: 0;
 }
 
+.rf-redirect-row {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.rf-redirect-row input {
+	flex: 1;
+}
+
 .rf-section.recommendations {
 	margin-top: 100px;
 }

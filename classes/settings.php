@@ -46,11 +46,9 @@ class Robot_Food_Settings {
 		$output = array();
 		$text_fields = array(
 			'homepage_title',
-			'title_format',
 			'title_separator',
 			'homepage_description',
 			'default_description',
-			'schema_type',
 			'schema_org_name',
 			'schema_socials',
 			'noindex_custom_slugs',
@@ -63,6 +61,12 @@ class Robot_Food_Settings {
 		foreach ( $text_fields as $field ) {
 			$output[ $field ] = isset( $input[ $field ] ) ? sanitize_textarea_field( wp_unslash( $input[ $field ] ) ) : '';
 		}
+		$allowed_schema_types   = array( 'Organization', 'Person' );
+		$schema_type            = isset( $input['schema_type'] ) ? sanitize_text_field( wp_unslash( $input['schema_type'] ) ) : 'Organization';
+		$output['schema_type']  = in_array( $schema_type, $allowed_schema_types, true ) ? $schema_type : 'Organization';
+		$allowed_title_formats  = array( 'title-site', 'site-title' );
+		$title_format           = isset( $input['title_format'] ) ? sanitize_text_field( wp_unslash( $input['title_format'] ) ) : 'title-site';
+		$output['title_format'] = in_array( $title_format, $allowed_title_formats, true ) ? $title_format : 'title-site';
 		$image_fields = array( 'default_og_image', 'schema_logo' );
 		foreach ( $image_fields as $field ) {
 			$output[ $field ] = isset( $input[ $field ] ) ? absint( $input[ $field ] ) : 0;
@@ -70,6 +74,8 @@ class Robot_Food_Settings {
 		$bool_fields = array(
 			'sitemap_disable',
 			'llms_disable',
+			'htaccess_https',
+			'htaccess_nowww',
 			'noindex_404',
 			'noindex_search',
 			'noindex_login',
@@ -96,6 +102,18 @@ class Robot_Food_Settings {
 			}
 		}
 		$output['robots_txt'] = isset( $input['robots_txt'] ) ? sanitize_textarea_field( wp_unslash( $input['robots_txt'] ) ) : '';
+		$redirects = array();
+		if ( isset( $input['htaccess_redirects'] ) && is_array( $input['htaccess_redirects'] ) ) {
+			foreach ( $input['htaccess_redirects'] as $redirect ) {
+				$from = isset( $redirect['from'] ) ? esc_url_raw( wp_unslash( $redirect['from'] ) ) : '';
+				$to   = isset( $redirect['to'] ) ? esc_url_raw( wp_unslash( $redirect['to'] ) ) : '';
+				if ( $from && $to ) {
+					$redirects[] = array( 'from' => $from, 'to' => $to );
+				}
+			}
+		}
+		$output['htaccess_redirects'] = $redirects;
+		self::write_htaccess_markers( $output );
 		$tracking_fields = array(
 			'ga4_id'            => '/^G-[A-Z0-9]+$/',
 			'gtm_id'            => '/^GTM-[A-Z0-9]+$/',
@@ -112,23 +130,35 @@ class Robot_Food_Settings {
 			$value = isset( $input[ $field ] ) ? sanitize_text_field( wp_unslash( $input[ $field ] ) ) : '';
 			$output[ $field ] = ( $value && preg_match( $pattern, $value ) ) ? $value : '';
 		}
-		if ( !empty( $output['robots_txt'] ) ) {
-			self::write_robots_txt( $output['robots_txt'] );
-		}
-		if ( isset( $input['htaccess'] ) ) {
-			self::write_htaccess( wp_unslash( $input['htaccess'] ) );
-		}
 		return $output;
 	}
 
-	public static function write_robots_txt( $content ) {
-		$path = ABSPATH . 'robots.txt';
-		file_put_contents( $path, $content );
-	}
-
-	public static function write_htaccess( $content ) {
+	public static function write_htaccess_markers( $options ) {
 		$path = ABSPATH . '.htaccess';
-		file_put_contents( $path, $content );
+		if ( !file_exists( $path ) ) {
+			return;
+		}
+		$lines = array();
+		if ( !empty( $options['htaccess_https'] ) && '1' === $options['htaccess_https'] ) {
+			$lines[] = 'RewriteEngine On';
+			$lines[] = 'RewriteCond %{HTTPS} off';
+			$lines[] = 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]';
+		}
+		if ( !empty( $options['htaccess_nowww'] ) && '1' === $options['htaccess_nowww'] ) {
+			$lines[] = 'RewriteEngine On';
+			$lines[] = 'RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]';
+			$lines[] = 'RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [R=301,L]';
+		}
+		if ( !empty( $options['htaccess_redirects'] ) ) {
+			foreach ( $options['htaccess_redirects'] as $redirect ) {
+				if ( !empty( $redirect['from'] ) && !empty( $redirect['to'] ) ) {
+					$from    = '/' . ltrim( wp_parse_url( $redirect['from'], PHP_URL_PATH ) ?? '', '/' );
+					$to      = esc_url_raw( $redirect['to'] );
+					$lines[] = 'Redirect 301 ' . $from . ' ' . $to;
+				}
+			}
+		}
+		insert_with_markers( $path, 'Robot Food', $lines );
 	}
 
 	public static function read_robots_txt() {
@@ -142,10 +172,12 @@ class Robot_Food_Settings {
 
 	public static function read_htaccess() {
 		$path = ABSPATH . '.htaccess';
-		if ( file_exists( $path ) ) {
-			return file_get_contents( $path );
+		if ( !file_exists( $path ) ) {
+			return '';
 		}
-		return '';
+		global $wp_filesystem;
+		WP_Filesystem();
+		return $wp_filesystem->get_contents( $path );
 	}
 
 	public static function notice_search_discouraged() {
@@ -219,11 +251,13 @@ class Robot_Food_Settings {
 			echo '</p>';
 			echo '</div>';
 		}
-		$options      = get_option( 'robot_food', array() );
-		$post_types   = get_post_types( array( 'public' => true ), 'objects' );
-		$excluded_pts = isset( $options['sitemap_exclude_post_types'] ) ? (array) $options['sitemap_exclude_post_types'] : array();
-		$robots_txt   = self::read_robots_txt();
-		$htaccess     = self::read_htaccess();
+		$options              = get_option( 'robot_food', array() );
+		$post_types           = get_post_types( array( 'public' => true ), 'objects' );
+		$excluded_pts         = isset( $options['sitemap_exclude_post_types'] ) ? (array) $options['sitemap_exclude_post_types'] : array();
+		$robots_txt           = self::read_robots_txt();
+		$htaccess             = self::read_htaccess();
+		$htaccess_redirects   = isset( $options['htaccess_redirects'] ) && is_array( $options['htaccess_redirects'] ) ? $options['htaccess_redirects'] : array();
+		$htaccess_redirects[] = array( 'from' => '', 'to' => '' );
 		?>
 		<div class="wrap" id="robot-food">
 			<h1>
@@ -259,8 +293,8 @@ class Robot_Food_Settings {
 							<td>
 								<?php $sep = Robot_Food::get_option( 'title_separator', '|' ); ?>
 								<select id="rf_title_format" name="robot_food[title_format]">
-									<option value="title-site" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'title-site' ); ?>><?php echo esc_html( sprintf( __( 'Page Title %s Site Name', 'robot-food' ), $sep ) ); ?></option>
-									<option value="site-title" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'site-title' ); ?>><?php echo esc_html( sprintf( __( 'Site Name %s Page Title', 'robot-food' ), $sep ) ); ?></option>
+									<option value="title-site" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'title-site' ); ?>><?php /* translators: %s: title separator character */ echo esc_html( sprintf( __( 'Page Title %s Site Name', 'robot-food' ), $sep ) ); ?></option>
+									<option value="site-title" <?php selected( Robot_Food::get_option( 'title_format', 'title-site' ), 'site-title' ); ?>><?php /* translators: %s: title separator character */ echo esc_html( sprintf( __( 'Site Name %s Page Title', 'robot-food' ), $sep ) ); ?></option>
 								</select>
 							</td>
 						</tr>
@@ -484,7 +518,7 @@ class Robot_Food_Settings {
 									printf(
 										wp_kses(
 											/* translators: %s: robots.txt URL */
-											__( 'Directly edits the robots.txt file in your WordPress root. Your robots.txt is at %s', 'robot-food' ),
+											__( 'Overrides the default WordPress robots.txt via filter. View at %s', 'robot-food' ),
 											array( 'a' => array( 'href' => array(), 'target' => array() ) )
 										),
 										'<a href="' . esc_url( home_url( '/robots.txt' ) ) . '" target="_blank">' . esc_html( home_url( '/robots.txt' ) ) . '</a>'
@@ -528,17 +562,82 @@ class Robot_Food_Settings {
 					</table>
 				</section>
 
-				<section class="rf-section" data-keywords="htaccess apache redirects rewrite rules server">
+				<section class="rf-section" data-keywords="htaccess apache https www redirects rewrite rules server">
 					<h2><?php esc_html_e( 'HT Access', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
-						<tr data-keywords="htaccess apache editor redirects rewrite rules mod_rewrite">
-							<th scope="row"><label for="rf_htaccess"><?php esc_html_e( '.htaccess', 'robot-food' ); ?></label></th>
+						<?php if ( $htaccess ) : ?>
+						<tr data-keywords="htaccess file contents view current">
+							<th scope="row"><?php esc_html_e( 'Current .htaccess', 'robot-food' ); ?></th>
 							<td>
-								<textarea id="rf_htaccess" name="robot_food[htaccess]" rows="12" class="large-text code"><?php echo esc_textarea( $htaccess ); ?></textarea>
-								<p class="description"><?php esc_html_e( 'Directly edits the .htaccess file in your WordPress root. Only available on Apache servers.', 'robot-food' ); ?></p>
+								<textarea readonly rows="10" class="large-text code"><?php echo esc_textarea( $htaccess ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Read-only. Edit via FTP/SSH or use the options below.', 'robot-food' ); ?></p>
+							</td>
+						</tr>
+						<?php endif; ?>
+						<tr data-keywords="force https ssl redirect">
+							<th scope="row"><?php esc_html_e( 'Force HTTPS', 'robot-food' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="robot_food[htaccess_https]" value="1" <?php checked( Robot_Food::get_option( 'htaccess_https', '0' ), '1' ); ?>>
+									<?php esc_html_e( 'Redirect all HTTP traffic to HTTPS', 'robot-food' ); ?>
+								</label>
+							</td>
+						</tr>
+						<tr data-keywords="www non-www redirect domain">
+							<th scope="row"><?php esc_html_e( 'Remove www', 'robot-food' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="robot_food[htaccess_nowww]" value="1" <?php checked( Robot_Food::get_option( 'htaccess_nowww', '0' ), '1' ); ?>>
+									<?php esc_html_e( 'Redirect www to non-www', 'robot-food' ); ?>
+								</label>
+							</td>
+						</tr>
+						<tr data-keywords="301 redirects from to url">
+							<th scope="row"><?php esc_html_e( '301 Redirects', 'robot-food' ); ?></th>
+							<td>
+								<div
+									class="rf-redirects"
+									data-from-label="<?php esc_attr_e( 'From URL', 'robot-food' ); ?>"
+									data-to-label="<?php esc_attr_e( 'To URL', 'robot-food' ); ?>"
+								>
+									<?php foreach ( $htaccess_redirects as $i => $redirect ) : ?>
+									<div class="rf-redirect-row">
+										<input
+											type="url"
+											name="robot_food[htaccess_redirects][<?php echo (int) $i; ?>][from]"
+											value="<?php echo esc_url( $redirect['from'] ); ?>"
+											placeholder="<?php esc_attr_e( 'From URL', 'robot-food' ); ?>"
+											class="regular-text"
+										>
+										<input
+											type="url"
+											name="robot_food[htaccess_redirects][<?php echo (int) $i; ?>][to]"
+											value="<?php echo esc_url( $redirect['to'] ); ?>"
+											placeholder="<?php esc_attr_e( 'To URL', 'robot-food' ); ?>"
+											class="regular-text"
+										>
+									</div>
+									<?php endforeach; ?>
+								</div>
+								<p class="description"><?php esc_html_e( 'A new row will appear as you fill in each one.', 'robot-food' ); ?></p>
 							</td>
 						</tr>
 					</table>
+					<p class="description">
+						<?php
+						printf(
+							wp_kses(
+								/* translators: %s: URL to .htaccess documentation */
+								__( 'Need to edit .htaccess directly? We recommend %s.', 'robot-food' ),
+								array(
+									'code' => array(),
+									'a'    => array( 'href' => array(), 'target' => array() ),
+								)
+							),
+							'<a href="https://wordpress.org/plugins/wp-htaccess-editor/" target="_blank">WP Htaccess Editor</a>'
+						);
+						?>
+					</p>
 				</section>
 
 				<section class="rf-section" data-keywords="tracking verification analytics google analytics tag manager search console bing meta pixel clarity hotjar pinterest tiktok x twitter">
