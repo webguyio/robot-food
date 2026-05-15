@@ -39,75 +39,75 @@ class Robot_Food_Meta {
 		$schema_type = Robot_Food::get_post_meta( $post->ID, 'schema_type' );
 		$og_image_url = $og_image ? wp_get_attachment_image_url( (int) $og_image, 'thumbnail' ) : '';
 		?>
-		<div class="rf-meta">
-			<div class="rf-meta-field">
-				<label for="rf_title"><?php esc_html_e( 'Title', 'robot-food' ); ?></label>
+		<div class="robot-food-meta">
+			<div class="robot-food-meta-field">
+				<label for="robot_food_title"><?php esc_html_e( 'Title', 'robot-food' ); ?></label>
 				<input
 					type="text"
-					id="rf_title"
-					name="rf_title"
+					id="robot_food_title"
+					name="robot_food_title"
 					value="<?php echo esc_attr( $title ); ?>"
 					placeholder="<?php esc_attr_e( 'Leave blank to use default title', 'robot-food' ); ?>"
 				>
 			</div>
-			<div class="rf-meta-field">
-				<label for="rf_description"><?php esc_html_e( 'Description', 'robot-food' ); ?></label>
+			<div class="robot-food-meta-field">
+				<label for="robot_food_description"><?php esc_html_e( 'Description', 'robot-food' ); ?></label>
 				<textarea
-					id="rf_description"
-					name="rf_description"
+					id="robot_food_description"
+					name="robot_food_description"
 					rows="2"
 					placeholder="<?php esc_attr_e( 'Leave blank to use excerpt or site default', 'robot-food' ); ?>"
 				><?php echo esc_textarea( $description ); ?></textarea>
 			</div>
-			<div class="rf-meta-field">
-				<label for="rf_canonical"><?php esc_html_e( 'Canonical URL', 'robot-food' ); ?></label>
+			<div class="robot-food-meta-field">
+				<label for="robot_food_canonical"><?php esc_html_e( 'Canonical URL', 'robot-food' ); ?></label>
 				<input
 					type="url"
-					id="rf_canonical"
-					name="rf_canonical"
+					id="robot_food_canonical"
+					name="robot_food_canonical"
 					value="<?php echo esc_url( $canonical ); ?>"
 					placeholder="<?php esc_attr_e( 'Leave blank to use the permalink', 'robot-food' ); ?>"
 				>
 			</div>
-			<div class="rf-meta-row">
-				<div class="rf-meta-field">
-					<label for="rf_og_title"><?php esc_html_e( 'Social Title', 'robot-food' ); ?></label>
+			<div class="robot-food-meta-row">
+				<div class="robot-food-meta-field">
+					<label for="robot_food_og_title"><?php esc_html_e( 'Social Title', 'robot-food' ); ?></label>
 					<input
 						type="text"
-						id="rf_og_title"
-						name="rf_og_title"
+						id="robot_food_og_title"
+						name="robot_food_og_title"
 						value="<?php echo esc_attr( $og_title ); ?>"
 						placeholder="<?php esc_attr_e( 'Leave blank to use title', 'robot-food' ); ?>"
 					>
 				</div>
-				<div class="rf-meta-field">
-					<label for="rf_og_description"><?php esc_html_e( 'Social Description', 'robot-food' ); ?></label>
+				<div class="robot-food-meta-field">
+					<label for="robot_food_og_description"><?php esc_html_e( 'Social Description', 'robot-food' ); ?></label>
 					<input
 						type="text"
-						id="rf_og_description"
-						name="rf_og_description"
+						id="robot_food_og_description"
+						name="robot_food_og_description"
 						value="<?php echo esc_attr( $og_desc ); ?>"
 						placeholder="<?php esc_attr_e( 'Leave blank to use description', 'robot-food' ); ?>"
 					>
 				</div>
 			</div>
-			<div class="rf-meta-field">
+			<div class="robot-food-meta-field">
 				<label><?php esc_html_e( 'Social Image', 'robot-food' ); ?></label>
-				<div class="rf-image-picker">
-					<input type="hidden" id="rf_og_image" name="rf_og_image" value="<?php echo esc_attr( $og_image ); ?>">
-					<div class="rf-image-preview" id="rf_og_image_preview">
+				<div class="robot-food-image-picker">
+					<input type="hidden" id="robot_food_og_image" name="robot_food_og_image" value="<?php echo esc_attr( $og_image ); ?>">
+					<div class="robot-food-image-preview" id="robot_food_og_image_preview">
 						<?php if ( $og_image_url ) : ?>
 							<img src="<?php echo esc_url( $og_image_url ); ?>" alt="">
 						<?php endif; ?>
 					</div>
-					<button type="button" class="button" id="rf_og_image_select"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
-					<button type="button" class="button rf-image-remove<?php echo $og_image ? '' : ' hidden'; ?>" id="rf_og_image_remove"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
+					<button type="button" class="button" id="robot_food_og_image_select"><?php esc_html_e( 'Select Image', 'robot-food' ); ?></button>
+					<button type="button" class="button robot-food-image-remove<?php echo $og_image ? '' : ' hidden'; ?>" id="robot_food_og_image_remove"><?php esc_html_e( 'Remove', 'robot-food' ); ?></button>
 				</div>
 			</div>
-			<div class="rf-meta-row">
-				<div class="rf-meta-field">
-					<label for="rf_schema_type"><?php esc_html_e( 'Schema Type', 'robot-food' ); ?></label>
-					<select id="rf_schema_type" name="rf_schema_type">
+			<div class="robot-food-meta-row">
+				<div class="robot-food-meta-field">
+					<label for="robot_food_schema_type"><?php esc_html_e( 'Schema Type', 'robot-food' ); ?></label>
+					<select id="robot_food_schema_type" name="robot_food_schema_type">
 						<option value="" <?php selected( $schema_type, '' ); ?>><?php esc_html_e( 'Auto', 'robot-food' ); ?></option>
 						<option value="WebPage" <?php selected( $schema_type, 'WebPage' ); ?>>WebPage</option>
 						<option value="Article" <?php selected( $schema_type, 'Article' ); ?>>Article</option>
@@ -120,17 +120,17 @@ class Robot_Food_Meta {
 						<option value="LocalBusiness" <?php selected( $schema_type, 'LocalBusiness' ); ?>>LocalBusiness</option>
 					</select>
 				</div>
-				<div class="rf-meta-field rf-noindex">
-					<label for="rf_noindex">
-						<input type="checkbox" id="rf_noindex" name="rf_noindex" value="1" <?php checked( $noindex, '1' ); ?>>
+				<div class="robot-food-meta-field robot-food-noindex">
+					<label for="robot_food_noindex">
+						<input type="checkbox" id="robot_food_noindex" name="robot_food_noindex" value="1" <?php checked( $noindex, '1' ); ?>>
 						<?php esc_html_e( 'Noindex', 'robot-food' ); ?>
 					</label>
-					<label for="rf_sitemap_exclude">
-						<input type="checkbox" id="rf_sitemap_exclude" name="rf_sitemap_exclude" value="1" <?php checked( Robot_Food::get_post_meta( $post->ID, 'sitemap_exclude', '0' ), '1' ); ?>>
+					<label for="robot_food_sitemap_exclude">
+						<input type="checkbox" id="robot_food_sitemap_exclude" name="robot_food_sitemap_exclude" value="1" <?php checked( Robot_Food::get_post_meta( $post->ID, 'sitemap_exclude', '0' ), '1' ); ?>>
 						<?php esc_html_e( 'Exclude from sitemap', 'robot-food' ); ?>
 					</label>
-					<label for="rf_llms_exclude">
-						<input type="checkbox" id="rf_llms_exclude" name="rf_llms_exclude" value="1" <?php checked( Robot_Food::get_post_meta( $post->ID, 'llms_exclude', '0' ), '1' ); ?>>
+					<label for="robot_food_llms_exclude">
+						<input type="checkbox" id="robot_food_llms_exclude" name="robot_food_llms_exclude" value="1" <?php checked( Robot_Food::get_post_meta( $post->ID, 'llms_exclude', '0' ), '1' ); ?>>
 						<?php esc_html_e( 'Exclude from llms.txt', 'robot-food' ); ?>
 					</label>
 				</div>
@@ -155,24 +155,24 @@ class Robot_Food_Meta {
 		}
 		$text_fields = array( 'title', 'og_title', 'og_description' );
 		foreach ( $text_fields as $field ) {
-			$value = isset( $_POST[ 'rf_' . $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'rf_' . $field ] ) ) : '';
+			$value = isset( $_POST[ 'robot_food_' . $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'robot_food_' . $field ] ) ) : '';
 			update_post_meta( $post_id, '_robot_food_' . $field, $value );
 		}
 		$allowed_schema_types = array( '', 'WebPage', 'Article', 'BlogPosting', 'NewsArticle', 'Product', 'FAQPage', 'HowTo', 'Event', 'LocalBusiness' );
-		$schema_type = isset( $_POST['rf_schema_type'] ) ? sanitize_text_field( wp_unslash( $_POST['rf_schema_type'] ) ) : '';
+		$schema_type = isset( $_POST['robot_food_schema_type'] ) ? sanitize_text_field( wp_unslash( $_POST['robot_food_schema_type'] ) ) : '';
 		if ( !in_array( $schema_type, $allowed_schema_types, true ) ) {
 			$schema_type = '';
 		}
 		update_post_meta( $post_id, '_robot_food_schema_type', $schema_type );
-		$description = isset( $_POST['rf_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rf_description'] ) ) : '';
+		$description = isset( $_POST['robot_food_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['robot_food_description'] ) ) : '';
 		update_post_meta( $post_id, '_robot_food_description', $description );
-		$canonical = isset( $_POST['rf_canonical'] ) ? esc_url_raw( wp_unslash( $_POST['rf_canonical'] ) ) : '';
+		$canonical = isset( $_POST['robot_food_canonical'] ) ? esc_url_raw( wp_unslash( $_POST['robot_food_canonical'] ) ) : '';
 		update_post_meta( $post_id, '_robot_food_canonical', $canonical );
-		$og_image = isset( $_POST['rf_og_image'] ) ? absint( $_POST['rf_og_image'] ) : 0;
+		$og_image = isset( $_POST['robot_food_og_image'] ) ? absint( $_POST['robot_food_og_image'] ) : 0;
 		update_post_meta( $post_id, '_robot_food_og_image', $og_image );
-		$noindex         = isset( $_POST['rf_noindex'] ) && '1' === $_POST['rf_noindex'] ? '1' : '0';
-		$sitemap_exclude = isset( $_POST['rf_sitemap_exclude'] ) && '1' === $_POST['rf_sitemap_exclude'] ? '1' : '0';
-		$llms_exclude    = isset( $_POST['rf_llms_exclude'] ) && '1' === $_POST['rf_llms_exclude'] ? '1' : '0';
+		$noindex         = isset( $_POST['robot_food_noindex'] ) && '1' === $_POST['robot_food_noindex'] ? '1' : '0';
+		$sitemap_exclude = isset( $_POST['robot_food_sitemap_exclude'] ) && '1' === $_POST['robot_food_sitemap_exclude'] ? '1' : '0';
+		$llms_exclude    = isset( $_POST['robot_food_llms_exclude'] ) && '1' === $_POST['robot_food_llms_exclude'] ? '1' : '0';
 		update_post_meta( $post_id, '_robot_food_noindex', $noindex );
 		update_post_meta( $post_id, '_robot_food_sitemap_exclude', $sitemap_exclude );
 		update_post_meta( $post_id, '_robot_food_llms_exclude', $llms_exclude );

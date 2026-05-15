@@ -9,8 +9,9 @@ class Robot_Food {
 
 	public static function init() {
 		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
+		add_action( 'wp_head', array( __CLASS__, 'output_tracking_head' ), 2 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_tracking_scripts' ) );
-		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 2 );
+		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 3 );
 		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
@@ -305,7 +306,7 @@ class Robot_Food {
 			$post_id     = get_the_ID();
 			$post        = get_post( $post_id );
 			if ( !$post ) {
-				echo '<script type="application/ld+json">' . wp_json_encode( $entity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+				echo '<script type="application/ld+json">' . wp_json_encode( $entity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 				self::output_breadcrumb_schema();
 				return;
 			}

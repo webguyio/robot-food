@@ -13,11 +13,11 @@
 	margin-bottom: 4px;
 }
 
-#rf-search-wrap {
+#robot-food-search-wrap {
 	margin-bottom: 20px;
 }
 
-#rf-search {
+#robot-food-search {
 	width: 100%;
 	padding: 8px 12px;
 	font-size: 14px;
@@ -25,7 +25,7 @@
 	border-radius: 3px;
 }
 
-.rf-section {
+.robot-food-section {
 	background: #fff;
 	border: 1px solid #c3c4c7;
 	border-radius: 3px;
@@ -33,7 +33,7 @@
 	padding: 0 20px 20px;
 }
 
-.rf-section h2 {
+.robot-food-section h2 {
 	font-size: 14px;
 	font-weight: 600;
 	padding: 12px 0;
@@ -41,23 +41,23 @@
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.rf-section.rf-hidden {
+.robot-food-section.robot-food-hidden {
 	display: none;
 }
 
-.rf-section .form-table th {
+.robot-food-section .form-table th {
 	width: 200px;
 	padding-left: 0;
 }
 
-.rf-image-picker {
+.robot-food-image-picker {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
 }
 
-.rf-image-preview {
+.robot-food-image-preview {
 	width: 60px;
 	height: 60px;
 	border: 1px solid #c3c4c7;
@@ -69,88 +69,88 @@
 	justify-content: center;
 }
 
-.rf-image-preview img {
+.robot-food-image-preview img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
 
-.rf-image-preview:empty {
+.robot-food-image-preview:empty {
 	display: none;
 }
 
-.rf-image-remove.hidden {
+.robot-food-image-remove.hidden {
 	display: none;
 }
 
-.rf-meta {
+.robot-food-meta {
 	padding: 4px 0;
 }
 
-.rf-meta-field {
+.robot-food-meta-field {
 	margin-bottom: 12px;
 }
 
-.rf-meta-field:last-child {
+.robot-food-meta-field:last-child {
 	margin-bottom: 0;
 }
 
-.rf-meta-field label {
+.robot-food-meta-field label {
 	display: block;
 	font-weight: 600;
 	margin-bottom: 4px;
 }
 
-.rf-meta-field input[type="text"],
-.rf-meta-field input[type="url"],
-.rf-meta-field textarea,
-.rf-meta-field select {
+.robot-food-meta-field input[type="text"],
+.robot-food-meta-field input[type="url"],
+.robot-food-meta-field textarea,
+.robot-food-meta-field select {
 	width: 100%;
 }
 
-.rf-meta-row {
+.robot-food-meta-row {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 12px;
 	margin-bottom: 12px;
 }
 
-.rf-noindex label {
+.robot-food-noindex label {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	font-weight: 600;
 }
 
-.rf-noindex label:first-child {
+.robot-food-noindex label:first-child {
 	padding-top: 24px;
 }
 
-.rf-noindex input[type="checkbox"] {
+.robot-food-noindex input[type="checkbox"] {
 	margin: 0;
 }
 
-.rf-redirect-row {
+.robot-food-redirect-row {
 	display: flex;
 	gap: 8px;
 	margin-bottom: 10px;
 }
 
-.rf-redirect-row input {
+.robot-food-redirect-row input {
 	flex: 1;
 }
 
-.rf-section.recommendations {
+.robot-food-section.recommendations {
 	margin-top: 100px;
 }
 
-.rf-recommendations {
+.robot-food-recommendations {
 	margin: 8px 0 0;
 	padding: 0;
 	list-style: none;
 }
 
-.rf-recommendations li {
+.robot-food-recommendations li {
 	padding: 4px 0;
 }
 
@@ -159,7 +159,7 @@
 		text-align: center;
 	}
 
-	.rf-meta-row {
+	.robot-food-meta-row {
 		grid-template-columns: 1fr;
 	}
 }

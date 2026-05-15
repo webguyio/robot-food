@@ -2,14 +2,14 @@
 	'use strict';
 
 	function initSearch() {
-		var input = document.getElementById('rf-search');
+		var input = document.getElementById('robot-food-search');
 		if (!input) return;
-		var sections = document.querySelectorAll('.rf-section');
+		var sections = document.querySelectorAll('.robot-food-section');
 		input.addEventListener('input', function () {
 			var q = this.value.trim().toLowerCase();
 			sections.forEach(function (section) {
 				if (!q) {
-					section.classList.remove('rf-hidden');
+					section.classList.remove('robot-food-hidden');
 					return;
 				}
 				var sectionKeywords = (section.getAttribute('data-keywords') || '').toLowerCase();
@@ -24,9 +24,9 @@
 					}
 				});
 				if (sectionMatch || rowMatch) {
-					section.classList.remove('rf-hidden');
+					section.classList.remove('robot-food-hidden');
 				} else {
-					section.classList.add('rf-hidden');
+					section.classList.add('robot-food-hidden');
 				}
 			});
 		});
@@ -39,8 +39,8 @@
 				frame.off('select');
 			}
 			frame = wp.media({
-				title: rfL10n.selectImage,
-				button: { text: rfL10n.useImage },
+				title: robotFoodL10n.selectImage,
+				button: { text: robotFoodL10n.useImage },
 				multiple: false,
 				library: { type: 'image' }
 			});
@@ -62,14 +62,14 @@
 			});
 			frame.open();
 		}
-		document.querySelectorAll('.rf-image-picker').forEach(function (picker) {
+		document.querySelectorAll('.robot-food-image-picker').forEach(function (picker) {
 			var hiddenInput = picker.querySelector('input[type="hidden"]');
 			if (!hiddenInput) return;
 			var inputId = hiddenInput.id;
-			var preview = picker.querySelector('.rf-image-preview');
+			var preview = picker.querySelector('.robot-food-image-preview');
 			var previewId = preview ? preview.id : null;
-			var selectBtn = picker.querySelector('.button:not(.rf-image-remove)');
-			var removeBtn = picker.querySelector('.rf-image-remove');
+			var selectBtn = picker.querySelector('.button:not(.robot-food-image-remove)');
+			var removeBtn = picker.querySelector('.robot-food-image-remove');
 			if (selectBtn) {
 				selectBtn.addEventListener('click', function () {
 					openPicker(inputId, previewId, removeBtn);
@@ -83,17 +83,17 @@
 				});
 			}
 		});
-		var metaSelect = document.getElementById('rf_og_image_select');
-		var metaRemove = document.getElementById('rf_og_image_remove');
+		var metaSelect = document.getElementById('robot_food_og_image_select');
+		var metaRemove = document.getElementById('robot_food_og_image_remove');
 		if (metaSelect) {
 			metaSelect.addEventListener('click', function () {
-				openPicker('rf_og_image', 'rf_og_image_preview', metaRemove);
+				openPicker('robot_food_og_image', 'robot_food_og_image_preview', metaRemove);
 			});
 		}
 		if (metaRemove) {
 			metaRemove.addEventListener('click', function () {
-				var input = document.getElementById('rf_og_image');
-				var preview = document.getElementById('rf_og_image_preview');
+				var input = document.getElementById('robot_food_og_image');
+				var preview = document.getElementById('robot_food_og_image_preview');
 				if (input) input.value = '';
 				if (preview) preview.innerHTML = '';
 				metaRemove.classList.add('hidden');
@@ -102,7 +102,7 @@
 	}
 
 	function initRedirectRows() {
-		var container = document.querySelector('.rf-redirects');
+		var container = document.querySelector('.robot-food-redirects');
 		if (!container) return;
 		var fromLabel = container.getAttribute('data-from-label') || 'From URL';
 		var toLabel = container.getAttribute('data-to-label') || 'To URL';
@@ -115,7 +115,7 @@
 			return empty;
 		}
 		function reindex() {
-			container.querySelectorAll('.rf-redirect-row').forEach(function (row, i) {
+			container.querySelectorAll('.robot-food-redirect-row').forEach(function (row, i) {
 				row.querySelectorAll('input').forEach(function (input) {
 					var key = input.name.indexOf('[from]') !== -1 ? 'from' : 'to';
 					input.name = 'robot_food[htaccess_redirects][' + i + '][' + key + ']';
@@ -123,7 +123,7 @@
 			});
 		}
 		function removeEmptyTrailingRows() {
-			var rows = container.querySelectorAll('.rf-redirect-row');
+			var rows = container.querySelectorAll('.robot-food-redirect-row');
 			for (var i = rows.length - 1; i > 0; i--) {
 				if (rowIsEmpty(rows[i])) {
 					rows[i].remove();
@@ -134,13 +134,13 @@
 			reindex();
 		}
 		function addRowIfNeeded() {
-			var rows = container.querySelectorAll('.rf-redirect-row');
+			var rows = container.querySelectorAll('.robot-food-redirect-row');
 			var lastRow = rows[rows.length - 1];
 			if (!lastRow) return;
 			if (!rowIsEmpty(lastRow)) {
 				var index = rows.length;
 				var newRow = document.createElement('div');
-				newRow.className = 'rf-redirect-row';
+				newRow.className = 'robot-food-redirect-row';
 				var fromInput = document.createElement('input');
 				fromInput.type = 'url';
 				fromInput.name = 'robot_food[htaccess_redirects][' + index + '][from]';
@@ -163,14 +163,30 @@
 			removeEmptyTrailingRows();
 			addRowIfNeeded();
 		}
-		container.querySelectorAll('.rf-redirect-row input').forEach(function (input) {
+		container.querySelectorAll('.robot-food-redirect-row input').forEach(function (input) {
 			input.addEventListener('input', handleInput);
+		});
+	}
+
+	function initDismissNotice() {
+		if (typeof robotFoodNotice === 'undefined') return;
+		var notice = document.getElementById('robot-food-notice-discouraged');
+		if (!notice) return;
+		notice.addEventListener('click', function (e) {
+			if (e.target.classList.contains('notice-dismiss')) {
+				fetch(robotFoodNotice.ajaxUrl, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					body: 'action=robot_food_dismiss_notice&nonce=' + robotFoodNotice.nonce
+				});
+			}
 		});
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
 		initSearch();
 		initRedirectRows();
+		initDismissNotice();
 		if (typeof wp !== 'undefined' && wp.media) {
 			initMediaPickers();
 		}
