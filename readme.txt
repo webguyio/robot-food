@@ -32,16 +32,18 @@ I like and use the "Big 3" myself, but I don't like their pricing models and oft
 = Features =
 
 * Title format and separator control
-* Default meta description
+* Default and homepage-specific title and meta description
 * Default social image for Open Graph and X Cards
-* Schema markup (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList)
+* Schema markup (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList) including automatic breadcrumb schema
 * Social profiles (sameAs)
+* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
 * Sitemap with option to exclude post types, individual posts, and terms
-* llms.txt with smart defaults and customizable header
+* Granular noindex controls for 404s, search results, archives, author pages, attachments, feeds, pagination, and custom URL paths
+* Pagination canonicals (prev/next)
 * robots.txt customization via WordPress filter
 * .htaccess rules to force HTTPS, remove www, and a 301 redirects manager
 * Tracking & verification (Google Analytics 4, Google Tag Manager, Google Search Console, Bing Webmaster, Meta Pixel, Microsoft Clarity, Hotjar, Pinterest Tag, TikTok Pixel, X Pixel)
-* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
+* llms.txt with smart defaults and customizable header
 * Works with all public post types including WooCommerce, bbPress, and other custom post types
 * Single settings page with live search
 * No setup wizard, no admin bar, no bloat
@@ -57,6 +59,16 @@ I like and use the "Big 3" myself, but I don't like their pricing models and oft
 = Is there a paid version? =
 
 No. This plugin is intentionally 100% free with all features available to everyone. No paywalled features, no restrictive licensing, no yearly subscription.
+
+= But why is there no paid version? =
+
+Because the "Big 3" SEO plugins all require ongoing annual subscriptions with per-site licensing. None of them offer a truly unlimited, one-time option for developers managing multiple websites. I build and maintain a lot of sites for myself and clients, and paying hundreds of dollars a year just to have basic SEO covered across all my projects never made sense. So I built the plugin I actually wanted to use: everything you need, no artificial feature walls, free on as many sites as you want.
+
+= Is this plugin's feature set limited? =
+
+Free doesn't mean limited. As an SEO professional who uses this plugin on my own projects every day, I have a personal stake in making sure it stays fully featured and up-to-date. If it's missing something I need, I'll add it.
+
+The features deliberately left out are the ones that don't actually move the needle: readability scoring, keyword density analysis, content grading, AI writing tools, and SEO scores. These are engagement features designed to keep you inside a plugin's ecosystem, not ranking signals. Google doesn't rank pages based on whether a plugin gave your content a green light. Good SEO comes down to useful content, a fast and well-structured site, and earning links. Robot Food handles the technical layer. The rest is up to you.
 
 = Does this work with WooCommerce products and other custom post types? =
 
