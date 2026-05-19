@@ -18,7 +18,9 @@ Feed the robots tasty snacks to improve your site's SEO and AIO.
 
 Feed the robots tasty snacks to improve your site's SEO and AIO.
 
-= What's the point of this plugin when SEO plugins already exist? =
+= Really TRULY Free =
+
+The only truly free, feature-rich WordPress SEO plugin with no paid upgrades, no upsells, and no bloat. All features, all users, unlimited websites, no catch. Forever.
 
 I like and use the "Big 3" myself, but I don't like their pricing models and often, I just need the nuts and bolts of basic SEO features without constant upsell nags throughout the admin. I don't need flashy SEO scores or advanced features or AI writers. I don't want a setup wizard or a labyrinth of settings pages to navigate through to find one little toggle.
 
@@ -37,7 +39,7 @@ I like and use the "Big 3" myself, but I don't like their pricing models and oft
 * Sitemap with option to exclude post types, individual posts, and terms
 * llms.txt with smart defaults and customizable header
 * robots.txt customization via WordPress filter
-* .htaccess rules to force HTTPS, remove www, and add 301 redirects
+* .htaccess rules to force HTTPS, remove www, and a 301 redirects manager
 * Tracking & verification (Google Analytics 4, Google Tag Manager, Google Search Console, Bing Webmaster, Meta Pixel, Microsoft Clarity, Hotjar, Pinterest Tag, TikTok Pixel, X Pixel)
 * Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
 * Works with all public post types including WooCommerce, bbPress, and other custom post types
