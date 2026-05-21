@@ -730,8 +730,6 @@ class Robot_Food_Settings {
 								<ul class="robot-food-recommendations">
 									<li><a href="https://wordpress.org/plugins/snappy/" target="_blank">Snappy</a> (<?php esc_html_e( 'speed optimization', 'robot-food' ); ?>)</li>
 									<li><a href="https://wordpress.org/plugins/simpleshare/" target="_blank">SimpleShare</a> (<?php esc_html_e( 'social sharing and auto-posting', 'robot-food' ); ?>)</li>
-									<li><a href="https://wordpress.org/plugins/rss-image/" target="_blank">RSS Image</a> (<?php esc_html_e( 'adds featured images to RSS feeds', 'robot-food' ); ?>)</li>
-									<li><a href="https://wordpress.org/plugins/primary-cat/" target="_blank">Primary Cat</a> (<?php esc_html_e( 'set a primary category per post', 'robot-food' ); ?>)</li>
 									<li><a href="https://wordpress.org/plugins/love-button/" target="_blank">Love Button</a> (<?php esc_html_e( 'like button for posts', 'robot-food' ); ?>)</li>
 									<li><a href="https://wordpress.org/plugins/auto-title-case/" target="_blank">Auto Title Case</a> (<?php esc_html_e( 'automatically formats post titles in title case', 'robot-food' ); ?>)</li>
 								</ul>

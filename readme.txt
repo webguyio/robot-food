@@ -5,7 +5,7 @@ Donate link: https://webguy.io/donate
 Tags: seo, meta, schema, sitemap, robots
 Requires at least: 5.9
 Tested up to: 6.9
-Requires PHP: 7.4
+Requires PHP: 8.0
 Stable tag: 0.1
 License: CC0
 License URI: https://creativecommons.org/public-domain/cc0/
@@ -33,10 +33,10 @@ I like and use the "Big 3" myself, but I don't like their pricing models and oft
 
 * Title format and separator control
 * Default and homepage-specific title and meta description
-* Default social image for Open Graph and X Cards
-* Schema markup (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList) including automatic breadcrumb schema
-* Social profiles (sameAs)
-* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, noindex, and excluding from the sitemap and llms.txt
+* Default social share image for Open Graph, X Cards, and RSS feed
+* Schema markup for the site (WebSite, Organization/Person, Article/WebPage per post, BreadcrumbList) including automatic breadcrumb schema
+* Schema markup for individuals (name, profession, email, phone, website, and socials)
+* Per-post overrides for title, description, canonical, social title, social description, social image, schema type, primary category, noindex, and excluding from the sitemap and llms.txt
 * Sitemap with option to exclude post types, individual posts, and terms
 * Granular noindex controls for 404s, search results, archives, author pages, attachments, feeds, pagination, and custom URL paths
 * Pagination canonicals (prev/next)

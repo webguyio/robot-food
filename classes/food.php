@@ -8,19 +8,24 @@ if ( !defined( 'ABSPATH' ) ) {
 class Robot_Food {
 
 	public static function init() {
-		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
-		add_action( 'wp_head', array( __CLASS__, 'output_tracking_head' ), 2 );
-		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_tracking_scripts' ) );
-		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 3 );
-		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
+		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_document_title' ) );
+		add_filter( 'post_link_category', array( __CLASS__, 'filter_post_link_category' ), 10, 3 );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
 		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots_txt' ), 10, 2 );
-		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_document_title' ) );
+		add_filter( 'wp_sitemaps_enabled', '__return_false' );
+		add_action( 'init', array( __CLASS__, 'register_post_meta' ) );
+		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
+		add_action( 'wp_head', array( __CLASS__, 'output_tracking_head' ), 2 );
+		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 3 );
+		add_action( 'wp_head', array( __CLASS__, 'output_author_schema' ), 4 );
+		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_tracking_scripts' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_llms_txt' ) );
-		add_filter( 'wp_sitemaps_enabled', '__return_false' );
+		add_action( 'rss2_item', array( __CLASS__, 'output_rss_image' ) );
 		Robot_Food_Meta::init();
+		Robot_Food_User::init();
 		Robot_Food_Settings::init();
 	}
 
@@ -130,6 +135,113 @@ class Robot_Food {
 			}
 		}
 		return '';
+	}
+
+	public static function register_post_meta() {
+		register_post_meta( 'post', '_robot_food_primary_cat', array(
+			'show_in_rest'  => true,
+			'single'        => true,
+			'type'          => 'integer',
+			'auth_callback' => function() {
+				return current_user_can( 'edit_posts' );
+			},
+		) );
+	}
+
+	public static function filter_post_link_category( $cat, $cats, $post ) {
+		$primary_cat_id = (int) self::get_post_meta( $post->ID, 'primary_cat', 0 );
+		if ( $primary_cat_id ) {
+			$term = get_term( $primary_cat_id, 'category' );
+			if ( $term && !is_wp_error( $term ) ) {
+				return $term;
+			}
+		}
+		return $cat;
+	}
+
+	public static function output_author_schema() {
+		$user_id = 0;
+		if ( is_singular() ) {
+			$post = get_queried_object();
+			if ( $post && isset( $post->post_author ) ) {
+				$user_id = (int) $post->post_author;
+			}
+		} elseif ( is_author() ) {
+			$author = get_queried_object();
+			if ( $author && isset( $author->ID ) ) {
+				$user_id = (int) $author->ID;
+			}
+		}
+		if ( !$user_id ) {
+			return;
+		}
+		$name     = get_user_meta( $user_id, '_robot_food_user_name', true );
+		if ( !$name ) {
+			$name = get_the_author_meta( 'display_name', $user_id );
+		}
+		if ( !$name ) {
+			return;
+		}
+		$schema = array(
+			'@context' => 'https://schema.org',
+			'@type'    => 'Person',
+			'name'     => $name,
+		);
+		$job_title = get_user_meta( $user_id, '_robot_food_user_job_title', true );
+		if ( $job_title ) {
+			$schema['jobTitle'] = $job_title;
+		}
+		$email = get_user_meta( $user_id, '_robot_food_user_email', true );
+		if ( $email ) {
+			$schema['email'] = $email;
+		}
+		$phone = get_user_meta( $user_id, '_robot_food_user_phone', true );
+		if ( $phone ) {
+			$schema['telephone'] = $phone;
+		}
+		$url = get_user_meta( $user_id, '_robot_food_user_url', true );
+		if ( $url ) {
+			$schema['url'] = $url;
+		}
+		$socials = get_user_meta( $user_id, '_robot_food_user_socials', true );
+		if ( $socials ) {
+			$same_as = array_values( array_filter( array_map( 'esc_url_raw', array_map( 'trim', explode( "\n", $socials ) ) ) ) );
+			if ( !empty( $same_as ) ) {
+				$schema['sameAs'] = $same_as;
+			}
+		}
+		echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
+	}
+
+	public static function output_rss_image() {
+		$thumbnail_id = null;
+		$thumbnail    = null;
+		if ( has_post_thumbnail() ) {
+			$thumbnail_id = get_post_thumbnail_id();
+			$thumbnail    = wp_get_attachment_image_src( $thumbnail_id, 'full' );
+		}
+		if ( !$thumbnail ) {
+			preg_match( '/<img[^>]+src=["\']([^"\']+)["\']/', get_the_content(), $matches );
+			if ( !empty( $matches[1] ) ) {
+				$src           = preg_replace( '/-\d+x\d+(\.[a-z]+)$/', '$1', $matches[1] );
+				$attachment_id = attachment_url_to_postid( $src );
+				if ( $attachment_id ) {
+					$thumbnail_id = $attachment_id;
+					$thumbnail    = wp_get_attachment_image_src( $attachment_id, 'full' );
+				}
+			}
+		}
+		if ( !$thumbnail ) {
+			$icon_id = get_option( 'site_icon' );
+			if ( $icon_id ) {
+				$thumbnail_id = $icon_id;
+				$thumbnail    = wp_get_attachment_image_src( $icon_id, 'full' );
+			}
+		}
+		if ( $thumbnail ) {
+			$mime_type = get_post_mime_type( $thumbnail_id );
+			echo '<media:content xmlns:media="http://search.yahoo.com/mrss/" medium="image" type="' . esc_attr( $mime_type ) . '" url="' . esc_url( $thumbnail[0] ) . '" width="' . esc_attr( $thumbnail[1] ) . '" height="' . esc_attr( $thumbnail[2] ) . '" />';
+		}
 	}
 
 	public static function filter_document_title( $title ) {
@@ -358,9 +470,19 @@ class Robot_Food {
 			$post_id    = get_the_ID();
 			$post_type  = get_post_type( $post_id );
 			if ( 'post' === $post_type ) {
-				$categories = get_the_category( $post_id );
-				if ( !empty( $categories ) ) {
+				$categories     = get_the_category( $post_id );
+				$primary_cat_id = (int) self::get_post_meta( $post_id, 'primary_cat', 0 );
+				$cat            = null;
+				if ( $primary_cat_id ) {
+					$primary_term = get_term( $primary_cat_id, 'category' );
+					if ( $primary_term && !is_wp_error( $primary_term ) ) {
+						$cat = $primary_term;
+					}
+				}
+				if ( !$cat && !empty( $categories ) ) {
 					$cat = $categories[0];
+				}
+				if ( $cat ) {
 					$crumbs[] = array(
 						'@type'    => 'ListItem',
 						'position' => $pos++,
@@ -567,10 +689,17 @@ class Robot_Food {
 				'post_status'    => 'publish',
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
-				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Required to exclude individually marked posts from sitemap.
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Required to exclude individually marked posts from sitemap.
+				'meta_query'   => array(
+					'relation' => 'OR',
 					array(
 						'key'     => '_robot_food_sitemap_exclude',
 						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => '_robot_food_sitemap_exclude',
+						'value'   => '1',
+						'compare' => '!=',
 					),
 				),
 			) );
@@ -657,7 +786,7 @@ class Robot_Food {
 		$pages = get_posts( array(
 			'post_type'      => 'page',
 			'post_status'    => 'publish',
-			'posts_per_page' => 100,
+			'posts_per_page' => -1,
 			'orderby'        => 'menu_order',
 			'order'          => 'ASC',
 		) );
@@ -673,7 +802,7 @@ class Robot_Food {
 		$posts = get_posts( array(
 			'post_type'      => 'post',
 			'post_status'    => 'publish',
-			'posts_per_page' => 100,
+			'posts_per_page' => -1,
 			'orderby'        => 'date',
 			'order'          => 'DESC',
 		) );
@@ -693,7 +822,7 @@ class Robot_Food {
 			$cpt_posts = get_posts( array(
 				'post_type'      => $post_type,
 				'post_status'    => 'publish',
-				'posts_per_page' => 100,
+				'posts_per_page' => -1,
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			) );

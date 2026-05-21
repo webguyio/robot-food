@@ -135,6 +135,21 @@ class Robot_Food_Meta {
 					</label>
 				</div>
 			</div>
+		<?php
+		$categories = get_the_category( $post->ID );
+		if ( !empty( $categories ) ) :
+			$primary_cat = (int) Robot_Food::get_post_meta( $post->ID, 'primary_cat', 0 );
+		?>
+		<div class="robot-food-meta-field">
+			<label for="robot_food_primary_cat"><?php esc_html_e( 'Primary Category', 'robot-food' ); ?></label>
+			<select id="robot_food_primary_cat" name="robot_food_primary_cat">
+				<option value="0"><?php esc_html_e( 'Default (first assigned)', 'robot-food' ); ?></option>
+				<?php foreach ( $categories as $category ) : ?>
+					<option value="<?php echo (int) $category->term_id; ?>" <?php selected( $primary_cat, $category->term_id ); ?>><?php echo esc_html( $category->name ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+		<?php endif; ?>
 		</div>
 		<?php
 	}
@@ -170,6 +185,8 @@ class Robot_Food_Meta {
 		update_post_meta( $post_id, '_robot_food_canonical', $canonical );
 		$og_image = isset( $_POST['robot_food_og_image'] ) ? absint( $_POST['robot_food_og_image'] ) : 0;
 		update_post_meta( $post_id, '_robot_food_og_image', $og_image );
+		$primary_cat = isset( $_POST['robot_food_primary_cat'] ) ? absint( $_POST['robot_food_primary_cat'] ) : 0;
+		update_post_meta( $post_id, '_robot_food_primary_cat', $primary_cat );
 		$noindex         = isset( $_POST['robot_food_noindex'] ) && '1' === $_POST['robot_food_noindex'] ? '1' : '0';
 		$sitemap_exclude = isset( $_POST['robot_food_sitemap_exclude'] ) && '1' === $_POST['robot_food_sitemap_exclude'] ? '1' : '0';
 		$llms_exclude    = isset( $_POST['robot_food_llms_exclude'] ) && '1' === $_POST['robot_food_llms_exclude'] ? '1' : '0';

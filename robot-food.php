@@ -7,7 +7,7 @@ Version: 0.1
 Author: Web Guy
 Author URI: https://webguy.io/
 Requires at least: 5.9
-Requires PHP: 7.4
+Requires PHP: 8.0
 License: CC0
 License URI: https://creativecommons.org/public-domain/cc0/
 Text Domain: robot-food
@@ -24,6 +24,7 @@ define( 'ROBOT_FOOD_URL', plugin_dir_url( __FILE__ ) );
 
 require_once ROBOT_FOOD_DIR . 'classes/food.php';
 require_once ROBOT_FOOD_DIR . 'classes/meta.php';
+require_once ROBOT_FOOD_DIR . 'classes/user.php';
 require_once ROBOT_FOOD_DIR . 'classes/settings.php';
 
 Robot_Food::init();
