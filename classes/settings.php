@@ -176,12 +176,7 @@ class Robot_Food_Settings {
 	}
 
 	public static function read_robots_txt() {
-		$saved = Robot_Food::get_option( 'robots_txt', '' );
-		if ( $saved !== '' ) {
-			return $saved;
-		}
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- robots_txt is a core WordPress filter, not a custom hook defined by this plugin.
-		return apply_filters( 'robots_txt', "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php", get_option( 'blog_public' ) );
+		return Robot_Food::get_robots_txt();
 	}
 
 	public static function read_htaccess() {
@@ -275,7 +270,15 @@ class Robot_Food_Settings {
 			<form method="post" action="options.php">
 				<?php settings_fields( 'robot_food' ); ?>
 
-				<?php submit_button(); ?>
+				<section class="robot-food-section" data-keywords="quick links google index verify docs">
+					<h2><?php esc_html_e( 'Quick Links', 'robot-food' ); ?></h2>
+					<p>
+						<a href="<?php echo esc_url( 'https://www.google.com/search?q=site%3A' . wp_parse_url( home_url(), PHP_URL_HOST ) ); ?>" target="_blank" class="button button-primary"><?php esc_html_e( 'Verify Google Inclusion', 'robot-food' ); ?></a>
+						<a href="https://robotfood.me/schema/" target="_blank" class="button button-secondary"><?php esc_html_e( 'Schema Generator', 'robot-food' ); ?></a>
+						<a href="https://robotfood.me/docs/" target="_blank" class="button button-secondary"><?php esc_html_e( 'Docs', 'robot-food' ); ?></a>
+					</p>
+					<p><?php esc_html_e( 'Thank you for using Robot Food, the only truly complete free SEO plugin for WordPress.', 'robot-food' ); ?> <a href="mailto:webguywork@gmail.com"><?php esc_html_e( 'Email me for help.', 'robot-food' ); ?></a></p>
+				</section>
 
 				<section class="robot-food-section" data-keywords="title separator format site name">
 					<h2><?php esc_html_e( 'Title', 'robot-food' ); ?></h2>
@@ -511,13 +514,16 @@ class Robot_Food_Settings {
 						<tr data-keywords="robots txt editor crawl disallow allow">
 							<th scope="row"><label for="robot_food_robots_txt"><?php esc_html_e( 'robots.txt', 'robot-food' ); ?></label></th>
 							<td>
-								<textarea id="robot_food_robots_txt" name="robot_food[robots_txt]" rows="10" class="large-text code" placeholder="User-agent: *&#10;Disallow:"><?php echo esc_textarea( $robots_txt ); ?></textarea>
+								<div class="robot-food-textarea-wrap">
+									<textarea id="robot_food_robots_txt" name="robot_food[robots_txt]" rows="10" class="large-text code" placeholder="User-agent: *&#10;Disallow:"><?php echo esc_textarea( $robots_txt ); ?></textarea>
+									<span class="robot-food-textarea-status"><?php echo Robot_Food::get_option( 'robots_txt' ) ? esc_html__( 'Custom', 'robot-food' ) : esc_html__( 'Dynamic', 'robot-food' ); ?></span>
+								</div>
 								<p class="description">
 									<?php
 									printf(
 										wp_kses(
 											/* translators: %s: robots.txt URL */
-											__( 'Overrides the default WordPress robots.txt via filter. View at %s', 'robot-food' ),
+											__( 'When dynamic, robots.txt is generated automatically by WordPress and Robot Food (including your sitemap URL). Enter custom content to override it completely. Clear the field and save to restore dynamic. View at %s', 'robot-food' ),
 											array( 'a' => array( 'href' => array(), 'target' => array() ) )
 										),
 										'<a href="' . esc_url( home_url( '/robots.txt' ) ) . '" target="_blank">' . esc_html( home_url( '/robots.txt' ) ) . '</a>'
@@ -719,8 +725,6 @@ class Robot_Food_Settings {
 					</p>
 				</section>
 
-				<?php submit_button(); ?>
-
 				<section class="robot-food-section recommendations" data-keywords="recommendations speed social sharing rss image primary category like button title case">
 					<h2><?php esc_html_e( 'Recommendations', 'robot-food' ); ?></h2>
 					<table class="form-table" role="presentation">
@@ -732,11 +736,14 @@ class Robot_Food_Settings {
 									<li><a href="https://wordpress.org/plugins/simpleshare/" target="_blank">SimpleShare</a> (<?php esc_html_e( 'social sharing and auto-posting', 'robot-food' ); ?>)</li>
 									<li><a href="https://wordpress.org/plugins/love-button/" target="_blank">Love Button</a> (<?php esc_html_e( 'like button for posts', 'robot-food' ); ?>)</li>
 									<li><a href="https://wordpress.org/plugins/auto-title-case/" target="_blank">Auto Title Case</a> (<?php esc_html_e( 'automatically formats post titles in title case', 'robot-food' ); ?>)</li>
+									<li><a href="https://wordpress.org/plugins/broken-link-checker/" target="_blank">Broken Link Checker</a> (<?php esc_html_e( 'find and fix broken links', 'robot-food' ); ?>)</li>
 								</ul>
 							</td>
 						</tr>
 					</table>
 				</section>
+
+				<?php submit_button(); ?>
 			</form>
 		</div>
 		<?php

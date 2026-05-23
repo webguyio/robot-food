@@ -13,6 +13,15 @@
 	margin-bottom: 4px;
 }
 
+#robot-food #submit {
+	position: fixed;
+	bottom: 0;
+	right: 0;
+	margin: 0 20px 35px 0;
+	box-shadow: 3px 3px 10px #aaa;
+	z-index: 1;
+}
+
 #robot-food-search-wrap {
 	margin-bottom: 20px;
 }
@@ -130,6 +139,23 @@
 	margin: 0;
 }
 
+.robot-food-textarea-wrap {
+	position: relative;
+}
+
+.robot-food-textarea-status {
+	position: absolute;
+	bottom: 15px;
+	right: 20px;
+	font-size: 11px;
+	line-height: 1;
+	padding: 3px 6px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	color: #50575e;
+	pointer-events: none;
+}
+
 .robot-food-redirect-row {
 	display: flex;
 	gap: 8px;
@@ -138,10 +164,6 @@
 
 .robot-food-redirect-row input {
 	flex: 1;
-}
-
-.robot-food-section.recommendations {
-	margin-top: 100px;
 }
 
 .robot-food-recommendations {

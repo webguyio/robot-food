@@ -4,7 +4,7 @@ Contributors: webguyio
 Donate link: https://webguy.io/donate
 Tags: seo, meta, schema, sitemap, robots
 Requires at least: 5.9
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.0
 Stable tag: 0.1
 License: CC0

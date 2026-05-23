@@ -27,4 +27,12 @@ require_once ROBOT_FOOD_DIR . 'classes/meta.php';
 require_once ROBOT_FOOD_DIR . 'classes/user.php';
 require_once ROBOT_FOOD_DIR . 'classes/settings.php';
 
+register_activation_hook( __FILE__, 'robot_food_activate' );
+
+function robot_food_activate() {
+	if ( !get_option( 'robot_food_indexnow_key' ) ) {
+		update_option( 'robot_food_indexnow_key', wp_generate_password( 32, false ) );
+	}
+}
+
 Robot_Food::init();

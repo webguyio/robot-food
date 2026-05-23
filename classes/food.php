@@ -10,19 +10,23 @@ class Robot_Food {
 	public static function init() {
 		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_document_title' ) );
 		add_filter( 'post_link_category', array( __CLASS__, 'filter_post_link_category' ), 10, 3 );
+		add_filter( 'wp_sitemaps_enabled', '__return_false' );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
-		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots_txt' ), 10, 2 );
-		add_filter( 'wp_sitemaps_enabled', '__return_false' );
 		add_action( 'init', array( __CLASS__, 'register_post_meta' ) );
+		add_action( 'transition_post_status', array( __CLASS__, 'indexnow_on_publish' ), 10, 3 );
+		add_action( 'trashed_post', array( __CLASS__, 'indexnow_on_trash' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_robots_txt' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xsl' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_llms_txt' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_indexnow_key' ) );
 		add_action( 'wp_head', array( __CLASS__, 'output_head' ), 1 );
 		add_action( 'wp_head', array( __CLASS__, 'output_tracking_head' ), 2 );
 		add_action( 'wp_head', array( __CLASS__, 'output_pagination_links' ), 3 );
 		add_action( 'wp_head', array( __CLASS__, 'output_author_schema' ), 4 );
 		add_action( 'wp_body_open', array( __CLASS__, 'output_tracking_body' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_tracking_scripts' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'handle_llms_txt' ) );
 		add_action( 'rss2_item', array( __CLASS__, 'output_rss_image' ) );
 		Robot_Food_Meta::init();
 		Robot_Food_User::init();
@@ -304,6 +308,11 @@ class Robot_Food {
 			echo '<meta property="og:description" content="' . esc_attr( $og_desc ) . '">' . "\n";
 		}
 		echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '">' . "\n";
+		if ( is_singular( 'post' ) ) {
+			$post_id = get_the_ID();
+			echo '<meta property="article:published_time" content="' . esc_attr( get_the_date( 'c', $post_id ) ) . '">' . "\n";
+			echo '<meta property="article:modified_time" content="' . esc_attr( get_the_modified_date( 'c', $post_id ) ) . '">' . "\n";
+		}
 		if ( $og_image ) {
 			echo '<meta property="og:image" content="' . esc_url( $og_image ) . '">' . "\n";
 			echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
@@ -650,15 +659,34 @@ class Robot_Food {
 		return $robots;
 	}
 
-	public static function filter_robots_txt( $output, $_public ) {
+	public static function get_robots_txt() {
 		$saved = self::get_option( 'robots_txt' );
 		if ( $saved ) {
 			return $saved;
 		}
+		$public  = get_option( 'blog_public' );
+		$default = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php";
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- robots_txt is a core WordPress filter.
+		$output = apply_filters( 'robots_txt', $default, $public );
 		if ( '1' !== self::get_option( 'sitemap_disable', '0' ) ) {
 			$output .= "\nSitemap: " . esc_url( home_url( '/sitemap.xml' ) );
 		}
 		return $output;
+	}
+
+	public static function handle_robots_txt() {
+		if ( !isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$uri  = wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH );
+		$path = rtrim( wp_parse_url( home_url(), PHP_URL_PATH ) ?? '', '/' );
+		if ( $path . '/robots.txt' !== $uri && '/robots.txt' !== $uri ) {
+			return;
+		}
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		status_header( 200 );
+		echo esc_html( self::get_robots_txt() );
+		exit;
 	}
 
 	public static function handle_sitemap_xml() {
@@ -732,7 +760,10 @@ class Robot_Food {
 		header( 'Content-Type: application/xml; charset=utf-8' );
 		status_header( 200 );
 		echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+		echo '<?xml-stylesheet type="text/xsl" href="' . esc_url( home_url( '/sitemap.xsl' ) ) . '"?>' . "\n";
+		echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:site="https://robotfood.me/">' . "\n";
+		echo "\t<site:name>" . esc_html( get_bloginfo( 'name' ) ) . "</site:name>\n";
+		echo "\t<url>\n\t\t<loc>" . esc_url( home_url( '/' ) ) . "</loc>\n\t</url>\n";
 		foreach ( $urls as $url ) {
 			echo "\t<url>\n";
 			echo "\t\t<loc>" . esc_url( $url['loc'] ) . "</loc>\n";
@@ -742,6 +773,31 @@ class Robot_Food {
 			echo "\t</url>\n";
 		}
 		echo '</urlset>';
+		exit;
+	}
+
+	public static function handle_sitemap_xsl() {
+		if ( !isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$uri  = wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH );
+		$path = rtrim( wp_parse_url( home_url(), PHP_URL_PATH ) ?? '', '/' );
+		if ( $path . '/sitemap.xsl' !== $uri && '/sitemap.xsl' !== $uri ) {
+			return;
+		}
+		$disable = self::get_option( 'sitemap_disable', '0' );
+		if ( '1' === $disable ) {
+			status_header( 404 );
+			exit;
+		}
+		global $wp_filesystem;
+		if ( !function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		WP_Filesystem();
+		header( 'Content-Type: text/xsl; charset=utf-8' );
+		status_header( 200 );
+		echo $wp_filesystem->get_contents( ROBOT_FOOD_DIR . 'assets/sitemap.xsl' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw XSL file served with correct Content-Type header.
 		exit;
 	}
 
@@ -796,7 +852,7 @@ class Robot_Food {
 			if ( '1' === $noindex || '1' === $excluded || in_array( $page->ID, $llms_excluded_ids, true ) ) {
 				continue;
 			}
-			echo '- [' . esc_html( get_the_title( $page ) ) . '](' . esc_url( get_permalink( $page ) ) . ')' . "\n";
+			echo '- [' . esc_html( html_entity_decode( get_the_title( $page ), ENT_QUOTES ) ) . '](' . esc_url( get_permalink( $page ) ) . ')' . "\n";
 		}
 		echo "\n## Posts\n\n";
 		$posts = get_posts( array(
@@ -812,7 +868,7 @@ class Robot_Food {
 			if ( '1' === $noindex || '1' === $excluded || in_array( $post->ID, $llms_excluded_ids, true ) ) {
 				continue;
 			}
-			echo '- [' . esc_html( get_the_title( $post ) ) . '](' . esc_url( get_permalink( $post ) ) . ')' . "\n";
+			echo '- [' . esc_html( html_entity_decode( get_the_title( $post ), ENT_QUOTES ) ) . '](' . esc_url( get_permalink( $post ) ) . ')' . "\n";
 		}
 		$post_types = get_post_types( array(
 			'public'   => true,
@@ -838,7 +894,7 @@ class Robot_Food {
 				if ( '1' === $noindex || '1' === $excluded || in_array( $cpt_post->ID, $llms_excluded_ids, true ) ) {
 					continue;
 				}
-				echo '- [' . esc_html( get_the_title( $cpt_post ) ) . '](' . esc_url( get_permalink( $cpt_post ) ) . ')' . "\n";
+				echo '- [' . esc_html( html_entity_decode( get_the_title( $cpt_post ), ENT_QUOTES ) ) . '](' . esc_url( get_permalink( $cpt_post ) ) . ')' . "\n";
 			}
 		}
 		$extra = self::get_option( 'llms_extra', '' );
@@ -846,5 +902,59 @@ class Robot_Food {
 			echo "\n" . esc_html( $extra ) . "\n";
 		}
 		exit;
+	}
+
+	public static function handle_indexnow_key() {
+		if ( !isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$key = get_option( 'robot_food_indexnow_key' );
+		if ( !$key ) {
+			return;
+		}
+		$uri  = wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH );
+		$path = rtrim( wp_parse_url( home_url(), PHP_URL_PATH ) ?? '', '/' );
+		if ( $path . '/' . $key . '.txt' !== $uri && '/' . $key . '.txt' !== $uri ) {
+			return;
+		}
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		status_header( 200 );
+		echo esc_html( $key );
+		exit;
+	}
+
+	public static function indexnow_ping( $url ) {
+		$key = get_option( 'robot_food_indexnow_key' );
+		if ( !$key ) {
+			return;
+		}
+		wp_remote_get( add_query_arg( array(
+			'url'    => rawurlencode( $url ),
+			'key'    => $key,
+			'keyLocation' => rawurlencode( home_url( '/' . $key . '.txt' ) ),
+		), 'https://api.indexnow.org/indexnow' ) );
+	}
+
+	public static function indexnow_on_publish( $new_status, $old_status, $post ) {
+		if ( 'publish' !== $new_status ) {
+			return;
+		}
+		$post_types = get_post_types( array( 'public' => true ) );
+		if ( !in_array( $post->post_type, $post_types, true ) ) {
+			return;
+		}
+		self::indexnow_ping( get_permalink( $post->ID ) );
+	}
+
+	public static function indexnow_on_trash( $post_id ) {
+		$post = get_post( $post_id );
+		if ( !$post ) {
+			return;
+		}
+		$post_types = get_post_types( array( 'public' => true ) );
+		if ( !in_array( $post->post_type, $post_types, true ) ) {
+			return;
+		}
+		self::indexnow_ping( get_permalink( $post_id ) );
 	}
 }
