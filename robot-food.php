@@ -33,6 +33,7 @@ function robot_food_activate() {
 	if ( !get_option( 'robot_food_indexnow_key' ) ) {
 		update_option( 'robot_food_indexnow_key', wp_generate_password( 32, false ) );
 	}
+	flush_rewrite_rules();
 }
 
 Robot_Food::init();
