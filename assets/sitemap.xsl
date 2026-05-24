@@ -26,6 +26,13 @@
 						color: #666;
 						margin-bottom: 24px;
 					}
+					a {
+						color: #0070f3;
+						text-decoration: none;
+					}
+					a:hover, a:focus {
+						text-decoration: underline;
+					}
 					table {
 						width: 100%;
 						border-collapse: collapse;
@@ -41,18 +48,15 @@
 						padding: 8px 12px;
 						border-bottom: 1px solid #f0f0f0;
 					}
-					a {
-						color: #0070f3;
-						text-decoration: none;
-					}
-					a:hover {
-						text-decoration: underline;
+					tr:nth-child(even) td {
+						background: #f7f7f7;
 					}
 					@media (prefers-color-scheme: dark) {
 						body { background: #111; color: #eee; }
 						p { color: #999; }
 						th { border-bottom-color: #333; color: #aaa; }
-						td { border-bottom-color: #222; }
+						td { border-bottom-color: #444; }
+						tr:nth-child(even) td { background: #222; }
 						a { color: #60a5fa; }
 					}
 				]]></style>
@@ -71,7 +75,7 @@
 						<xsl:for-each select="sm:urlset/sm:url">
 							<tr>
 								<td><a href="{sm:loc}"><xsl:value-of select="sm:loc"/></a></td>
-								<xsl:if test="sm:lastmod"><td><xsl:value-of select="sm:lastmod"/></td></xsl:if>
+								<xsl:if test="/sm:urlset/sm:url/sm:lastmod"><td><xsl:choose><xsl:when test="sm:lastmod"><xsl:value-of select="sm:lastmod"/></xsl:when><xsl:otherwise>N/A</xsl:otherwise></xsl:choose></td></xsl:if>
 							</tr>
 						</xsl:for-each>
 					</tbody>

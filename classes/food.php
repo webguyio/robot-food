@@ -187,7 +187,7 @@ class Robot_Food {
 			return;
 		}
 		$schema = array(
-			'@context' => 'https://schema.org',
+			'@context' => 'https://schema.org/',
 			'@type'    => 'Person',
 			'name'     => $name,
 		);
@@ -405,20 +405,20 @@ class Robot_Food {
 			$same_as = array_values( array_filter( array_map( 'esc_url_raw', array_map( 'trim', explode( "\n", $socials ) ) ) ) );
 		}
 		$website_schema = array(
-			'@context' => 'https://schema.org',
+			'@context' => 'https://schema.org/',
 			'@type'    => 'WebSite',
 			'name'     => $site_name,
 			'url'      => $site_url,
 		);
 		echo '<script type="application/ld+json">' . wp_json_encode( $website_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG ) . '</script>' . "\n";
 		$entity = array(
-			'@context' => 'https://schema.org',
+			'@context' => 'https://schema.org/',
 			'@type'    => $schema_type,
 			'name'     => $org_name,
 			'url'      => $site_url,
 		);
 		if ( $logo_url ) {
-			$entity['logo'] = $logo_url;
+			$entity[ 'Organization' === $schema_type ? 'logo' : 'image' ] = $logo_url;
 		}
 		if ( !empty( $same_as ) ) {
 			$entity['sameAs'] = $same_as;
@@ -434,7 +434,7 @@ class Robot_Food {
 			$schema_override = self::get_post_meta( $post_id, 'schema_type' );
 			$post_type   = $schema_override ? $schema_override : ( is_singular( 'post' ) ? 'Article' : 'WebPage' );
 			$post_schema = array(
-				'@context'      => 'https://schema.org',
+				'@context'      => 'https://schema.org/',
 				'@type'         => $post_type,
 				'headline'      => get_the_title( $post_id ),
 				'url'           => get_permalink( $post_id ),
@@ -450,7 +450,7 @@ class Robot_Food {
 				),
 			);
 			if ( $logo_url ) {
-				$post_schema['publisher']['logo'] = $logo_url;
+				$post_schema['publisher'][ 'Organization' === $schema_type ? 'logo' : 'image' ] = $logo_url;
 			}
 			$og_image = self::get_og_image();
 			if ( $og_image ) {
@@ -546,7 +546,7 @@ class Robot_Food {
 			return;
 		}
 		$schema = array(
-			'@context'        => 'https://schema.org',
+			'@context'        => 'https://schema.org/',
 			'@type'           => 'BreadcrumbList',
 			'itemListElement' => $crumbs,
 		);
