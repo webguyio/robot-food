@@ -11,13 +11,14 @@ class Robot_Food {
 		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_document_title' ) );
 		add_filter( 'post_link_category', array( __CLASS__, 'filter_post_link_category' ), 10, 3 );
 		add_filter( 'wp_sitemaps_enabled', '__return_false' );
+		add_filter( 'rewrite_rules_array', array( __CLASS__, 'remove_core_sitemap_rule' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots' ) );
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_robots_noindex' ) );
 		add_action( 'init', array( __CLASS__, 'register_post_meta' ) );
 		add_action( 'transition_post_status', array( __CLASS__, 'indexnow_on_publish' ), 10, 3 );
 		add_action( 'trashed_post', array( __CLASS__, 'indexnow_on_trash' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_robots_txt' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xml' ), 9 );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_sitemap_xsl' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_llms_txt' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_indexnow_key' ) );
@@ -741,8 +742,12 @@ class Robot_Food {
 				);
 			}
 		}
+		$excluded_taxonomies = self::get_option( 'sitemap_exclude_taxonomies', array( 'post_tag' ) );
 		$taxonomies = get_taxonomies( array( 'public' => true ) );
 		foreach ( $taxonomies as $taxonomy ) {
+			if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
+				continue;
+			}
 			$terms = get_terms( array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => true,
@@ -799,6 +804,11 @@ class Robot_Food {
 		status_header( 200 );
 		echo $wp_filesystem->get_contents( ROBOT_FOOD_DIR . 'assets/sitemap.xsl' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw XSL file served with correct Content-Type header.
 		exit;
+	}
+
+	public static function remove_core_sitemap_rule( $rules ) {
+		unset( $rules['sitemap\.xml'] );
+		return $rules;
 	}
 
 	public static function handle_llms_txt() {

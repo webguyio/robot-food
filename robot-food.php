@@ -3,10 +3,10 @@
 Plugin Name: Robot Food
 Plugin URI: https://robotfood.me/
 Description: Feed the robots tasty snacks to improve your site's SEO and AIO.
-Version: 0.1
+Version: 0.2
 Author: Web Guy
 Author URI: https://webguy.io/
-Requires at least: 5.9
+Requires at least: 6.0
 Requires PHP: 8.0
 License: CC0
 License URI: https://creativecommons.org/public-domain/cc0/
@@ -18,7 +18,7 @@ if ( !defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ROBOT_FOOD_VER', '0.1' );
+define( 'ROBOT_FOOD_VER', '0.2' );
 define( 'ROBOT_FOOD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ROBOT_FOOD_URL', plugin_dir_url( __FILE__ ) );
 

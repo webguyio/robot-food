@@ -99,7 +99,7 @@ class Robot_Food_Settings {
 		foreach ( $bool_fields as $field ) {
 			$output[ $field ] = isset( $input[ $field ] ) && '1' === $input[ $field ] ? '1' : '0';
 		}
-		$array_fields = array( 'sitemap_exclude_post_types' );
+		$array_fields = array( 'sitemap_exclude_post_types', 'sitemap_exclude_taxonomies' );
 		foreach ( $array_fields as $field ) {
 			if ( isset( $input[ $field ] ) && is_array( $input[ $field ] ) ) {
 				$output[ $field ] = array_map( 'sanitize_key', $input[ $field ] );
@@ -248,6 +248,7 @@ class Robot_Food_Settings {
 		$options              = get_option( 'robot_food', array() );
 		$post_types           = get_post_types( array( 'public' => true ), 'objects' );
 		$excluded_pts         = isset( $options['sitemap_exclude_post_types'] ) ? (array) $options['sitemap_exclude_post_types'] : array();
+		$excluded_taxonomies  = isset( $options['sitemap_exclude_taxonomies'] ) ? (array) $options['sitemap_exclude_taxonomies'] : array( 'post_tag' );
 		$robots_txt           = self::read_robots_txt();
 		$htaccess             = self::read_htaccess();
 		$htaccess_redirects   = isset( $options['htaccess_redirects'] ) && is_array( $options['htaccess_redirects'] ) ? $options['htaccess_redirects'] : array();
@@ -439,6 +440,22 @@ class Robot_Food_Settings {
 											<?php checked( in_array( $pt->name, $excluded_pts, true ) ); ?>
 										>
 										<?php echo esc_html( $pt->labels->name ); ?>
+									</label>
+								<?php endforeach; ?>
+							</td>
+						</tr>
+						<tr data-keywords="exclude taxonomies term types categories tags sitemap">
+							<th scope="row"><?php esc_html_e( 'Exclude Term Types', 'robot-food' ); ?></th>
+							<td>
+								<?php foreach ( get_taxonomies( array( 'public' => true ), 'objects' ) as $tax ) : ?>
+									<label>
+										<input
+											type="checkbox"
+											name="robot_food[sitemap_exclude_taxonomies][]"
+											value="<?php echo esc_attr( $tax->name ); ?>"
+											<?php checked( in_array( $tax->name, $excluded_taxonomies, true ) ); ?>
+										>
+										<?php echo esc_html( $tax->labels->name ); ?>
 									</label>
 								<?php endforeach; ?>
 							</td>

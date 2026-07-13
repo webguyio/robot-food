@@ -3,10 +3,10 @@
 Contributors: webguyio
 Donate link: https://webguy.io/donate
 Tags: seo, meta, schema, sitemap, robots
-Requires at least: 5.9
+Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1
+Stable tag: 0.2
 License: CC0
 License URI: https://creativecommons.org/public-domain/cc0/
 
@@ -81,6 +81,10 @@ Only if you configure tracking services in the Tracking & Verification settings.
 Services that can be enabled and their privacy policies: [Google Analytics](https://policies.google.com/privacy), [Google Tag Manager](https://policies.google.com/privacy), [Meta Pixel](https://www.facebook.com/privacy/policy), [Microsoft Clarity](https://www.microsoft.com/privacy/privacystatement), [Hotjar](https://www.hotjar.com/legal/policies/privacy/), [Pinterest](https://policy.pinterest.com/privacy-policy), [TikTok](https://www.tiktok.com/legal/page/us/privacy-policy/en), and [X](https://x.com/privacy).
 
 == Changelog ==
+
+= 0.2 =
+* Added option to exclude taxonomies from sitemap
+* Improved sitemap support for WordPress 7.0
 
 = 0.1 =
 * New
